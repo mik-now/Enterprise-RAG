@@ -1,7 +1,7 @@
 name: Coverity Scans Python
 
 on:
-  pull_request:
+  push:
     branches: [ main ]
 
 jobs:
