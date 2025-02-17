@@ -147,21 +147,6 @@ runs:
         if-no-files-found: error
         retention-days: 60
 
-    - name: Create checkmarx_results.csv
-      if: ${{ inputs.Repository-name == 'intel/Enterprise-RAG' }}
-      run:
-        touch checkmarx_results.csv
-      shell: bash
-
-    - name: Checkmarx scan for public repo
-      if: ${{ inputs.Repository-name == 'intel/Enterprise-RAG' }}
-      uses: intel-innersource/frameworks.actions.checkmarx@v1.8
-      with:
-        checkmarx_username: INTEL-AMR/${{ env.CONJUR_SDL_USERNAME }}
-        checkmarx_password: ${{ env.CONJUR_SDL_PASSWORD }}
-        checkmarx_project_id: 360520
-        checkmarx_zip_file: "rag-enterprise-repo.zip"
-
     - name: Clean up before bandit scan
       if: always()
       run: |

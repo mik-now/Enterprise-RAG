@@ -13,10 +13,6 @@
             }
         ]
     },
-    "StaticSecurityScan": {
-        "ServerURL": "https://sast.intel.com",
-        "ProjectID": "361162"
-    },
     "BinaryScan": {
         "ServerURL": "https://bdba001.icloud.intel.com",
         "ServerGroup": "57"

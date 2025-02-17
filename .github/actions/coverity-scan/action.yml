@@ -1,0 +1,79 @@
+name: "Coverity scan"
+
+inputs:
+  ANALYZE_OPTIONS:
+    description: 'Analyze-options'
+    required: true
+  COMPILER_TYPE:
+    description: 'Compiler-type'
+    required: true
+  RAG_COVERITY_USER:
+    description: 'Coverity user'
+    required: true
+  RAG_COVERITY_PASSWORD:
+    description: 'Coverity password'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
+      path: repo
+
+  - name: Exclude files from Coverity scans
+    run: |
+      cd repo
+      find . -name '*.y*ml' -delete
+      find . -name '*Dockerfile*' -delete
+      find . -type d -name 'docker' -prune -exec rm -rf {} \;
+      cd ..
+    shell: bash
+
+  - name: Set up Coverity
+    uses: intel-innersource/frameworks.actions.setup-coverity@v4
+    with:
+      analysis-version: 2024.3.0
+      reports-version: 2023.12.0
+
+  - name: Check Coverity version
+    run: coverity --version
+    shell: bash
+
+  - name: Run Coverity scan
+    id: run_coverity
+    uses: intel-innersource/frameworks.actions.coverity-analysis@v4
+    continue-on-error: true
+    with:
+      source: repo
+      fail-if-issues-found: true
+      url: https://coverity.devtools.intel.com/prod15
+      project: Enterprise-RAG
+      stream: Enterprise-RAG
+      user: ${{ inputs.RAG_COVERITY_USER }}
+      password: ${{ inputs.RAG_COVERITY_PASSWORD }}
+      commit-defects: true
+      analyze-options: ${{ inputs.ANALYZE_OPTIONS }}
+      compiler-type: ${{ inputs.COMPILER_TYPE }}
+
+  - name: Check for Coverity scan status
+    if: steps.run_coverity.outcome != 'success'
+    run: |
+      echo "Exiting job because the Coverity scan failed."
+      exit 1
+    shell: bash
+
+  - name: Collect Coverity reports
+    run: |
+      mkdir coverity-report-${{ inputs.COMPILER_TYPE }}
+      cp cvss_report.pdf coverity-report-${{ inputs.COMPILER_TYPE }}/
+      cp security_report.pdf coverity-report-${{ inputs.COMPILER_TYPE }}/
+    shell: bash
+
+  - name: Archive Coverity reports
+    uses: actions/upload-artifact@v4
+    with:
+      name: coverity-reports-${{ inputs.COMPILER_TYPE }}
+      path: coverity-report-${{ inputs.COMPILER_TYPE }}/
