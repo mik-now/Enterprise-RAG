@@ -1,0 +1,24 @@
+name: "Publish internal main to public OPEA repository"
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  Publish-main:
+    if: ${{ github.repository == 'intel-innersource/applications.ai.enterprise-rag.enterprise-ai-solution' }}
+    runs-on: [innersource.prod.amr.dind]
+    name: Publish main
+    container:
+      image: cache-registry.caas.intel.com/cache/library/python:3.11
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Publish main
+        uses: ./.github/actions/push-code-to-public
+        with:
+          OPEA_PAT: ${{ secrets.OPEA_PAT }}
