@@ -34,28 +34,51 @@ runs:
       git remote add internal_rag ../internal_repo
       git fetch internal_rag
       git checkout internal_main || git checkout -b internal_main
-      git merge internal_rag/main --no-commit --allow-unrelated-histories --strategy-option=theirs --squash
+      if [[ -z "$(git diff HEAD internal_rag/main --binary -- ':(exclude).github/')" ]]; then
+        echo "No diff to patch. Finish successfully"
+        exit 0
+      fi
+      git diff HEAD internal_rag/main --binary -- ":(exclude).github/" > update.patch
+      git apply update.patch
+      rm update.patch
       git reset -- .github
       if [ -d ".github" ]; then
         cd .github
         git clean -fd
         cd ..
       fi
-      git checkout -- .
       if [ -n "$(git status --porcelain)" ]; then
         echo "push=true" >> "$GITHUB_OUTPUT"
-        git add --all && git commit -m "Merge code from internal to public main" --signoff
-        git push --set-upstream opea_rag internal_main
+        git add --all
+        git commit -m "Patch code from internal to public main" --signoff
       else
         echo "No changes to be commited";
       fi
     shell: bash
 
+  - name: Verify git diff and push
+    if: ${{ steps.push.outputs.push == 'true' }}
+    run: |
+      cd public_repo
+      echo "git diff with .github/ excluded:"
+      git diff internal_rag/main --name-only -- ":(exclude).github/*"
+      if [[ -z "$(git diff internal_rag/main --name-only -- ":(exclude).github/*")" ]]; then
+        echo "Diff check ok"
+        git push --set-upstream opea_rag internal_main
+      else
+        echo "Incorrect diff, abort"
+        exit 1
+      fi
+    shell: bash
+
+
   - name: Install sudo
+    if: ${{ steps.push.outputs.push == 'true' }}
     run: apt update && apt -y install sudo
     shell: bash
 
   - name: Install Github CLI
+    if: ${{ steps.push.outputs.push == 'true' }}
     run: |
       (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
       && sudo mkdir -p -m 755 /etc/apt/keyrings \
@@ -74,13 +97,3 @@ runs:
     shell: bash
     env:
       GH_TOKEN: ${{ inputs.OPEA_PAT }}
-
-  - name: Verify git diff
-    run: |
-      cd public_repo
-      echo "git diff with .github/ excluded:"
-      git diff internal_rag/main --name-only -- ":(exclude).github/*"
-      if [[ -z "$(git diff internal_rag/main --name-only -- ":(exclude).github/*")" ]]; then
-        exit 0;
-      fi
-    shell: bash
