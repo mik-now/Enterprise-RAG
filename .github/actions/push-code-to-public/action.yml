@@ -15,6 +15,7 @@ runs:
       ref: 'main'
       token: ${{ inputs.OPEA_PAT }}
       path: public_repo
+      fetch-depth: 0
 
   - name: Fetch internal repo
     uses: actions/checkout@v4
