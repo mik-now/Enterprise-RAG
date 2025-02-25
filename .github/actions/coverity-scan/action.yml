@@ -35,8 +35,8 @@ runs:
   - name: Set up Coverity
     uses: intel-innersource/frameworks.actions.setup-coverity@v4
     with:
-      analysis-version: 2024.3.0
-      reports-version: 2023.12.0
+      analysis-version: 2024.6.1
+      reports-version: 2024.6.1
 
   - name: Check Coverity version
     run: coverity --version
@@ -66,14 +66,12 @@ runs:
     shell: bash
 
   - name: Collect Coverity reports
-    run: |
-      mkdir coverity-report-${{ inputs.COMPILER_TYPE }}
-      cp cvss_report.pdf coverity-report-${{ inputs.COMPILER_TYPE }}/
-      cp security_report.pdf coverity-report-${{ inputs.COMPILER_TYPE }}/
-    shell: bash
-
-  - name: Archive Coverity reports
-    uses: actions/upload-artifact@v4
+    uses: intel-innersource/frameworks.actions.coverity-analysis/sdl-reports@v4
     with:
-      name: coverity-reports-${{ inputs.COMPILER_TYPE }}
-      path: coverity-report-${{ inputs.COMPILER_TYPE }}/
+      url: https://coverity.devtools.intel.com/prod15
+      project: Enterprise-RAG
+      project-version: 1.1.0
+      user: ${{ inputs.RAG_COVERITY_USER }}
+      password: ${{ inputs.RAG_COVERITY_PASSWORD }}
+      snapshot: ${{steps.run_coverity.outputs.snapshot}}
+      artifact-name: SDL reports for ${{ inputs.COMPILER_TYPE }} - Coverity snapshot ${{steps.run_coverity.outputs.snapshot}}
