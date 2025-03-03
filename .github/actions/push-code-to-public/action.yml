@@ -33,6 +33,7 @@ runs:
       git remote add opea_rag https://github.com/opea-project/Enterprise-RAG
       git remote add internal_rag ../internal_repo
       git fetch internal_rag
+      LAST_COMMIT_SHA=$(git log internal_rag/main -1 --pretty=%h)
       git checkout internal_main || git checkout -b internal_main
       if [[ -z "$(git diff HEAD internal_rag/main --binary -- ':(exclude).github/')" ]]; then
         echo "No diff to patch. Finish successfully"
@@ -50,7 +51,7 @@ runs:
       if [ -n "$(git status --porcelain)" ]; then
         echo "push=true" >> "$GITHUB_OUTPUT"
         git add --all
-        git commit -m "Patch code from internal to public main" --signoff
+        git commit -m "Patch code up to ${LAST_COMMIT_SHA}" --signoff
       else
         echo "No changes to be commited";
       fi
