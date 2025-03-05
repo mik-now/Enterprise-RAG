@@ -11,7 +11,6 @@ on:
         required: true
         type: choice
         options:
-        - intel-innersource/applications.ai.enterprise-rag.enterprise-ai-solution
         - opea-project/Enterprise-RAG
       SDL:
         description: 'Perform SDL scans'
@@ -111,7 +110,7 @@ jobs:
 
   copy-pr:
     if: |
-      (github.event.inputs.Create-PR == 'yes') && (github.event.inputs.Repository-name == 'opea-project/Enterprise-RAG')
+      (github.event.inputs.Create-PR == 'yes') && (github.event.inputs.Repository-name == 'opea-project/Enterprise-RAG') &&
       (github.repository == 'intel-innersource/applications.ai.enterprise-rag.enterprise-ai-solution')
     runs-on: [innersource.prod.amr.dind]
     defaults:
@@ -130,5 +129,6 @@ jobs:
       - name: Copy PR
         uses: ./.github/actions/pull-code-from-public
         with:
-        Repository-name: ${{ github.event.inputs.Repository-name }}
-        PR-number: ${{ github.event.inputs.PR-number }}
+          Repository-name: ${{ github.event.inputs.Repository-name }}
+          PR-number: ${{ github.event.inputs.PR-number }}
+          INNERSOURCE_PAT: ${{ secrets.INNERSOURCE_PAT }}

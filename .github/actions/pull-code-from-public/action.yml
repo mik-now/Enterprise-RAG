@@ -7,6 +7,9 @@ inputs:
   PR-number:
     description: 'Pull request number'
     required: true
+  INNERSOURCE_PAT:
+    description: 'INNERSOURCE repo token'
+    required: true
 
 runs:
   using: "composite"
@@ -14,33 +17,37 @@ runs:
   - name: Checkout Code
     uses: actions/checkout@v4
     with:
-      path: repo
+      ref: main
+      path: internal_repo
 
-  - name: Merge code from public PR
-    id: pull
+  - name: Fetch code from public PR
     run: |
-      cd repo
-      git config --global user.email "actions@github.com"
-      git config --global user.name "Github Actions"
+      cd internal_repo
       git remote add opea_rag https://github.com/${{ inputs.Repository-name }}
       git fetch opea_rag
       git checkout public_PR_${{ inputs.PR-number }} || git checkout -b public_PR_${{ inputs.PR-number }}
-      git fetch opea_rag pull/{{ inputs.PR-number }}/head:external_pr_{{ inputs.PR-number }}
-      git merge external_pr_{{ inputs.PR-number }} --no-commit --allow-unrelated-histories --strategy-option=theirs --squash
-      git reset -- .github
-      if [ -d ".github" ]; then
-        cd .github
-        git clean -fd
-        cd ..
-      fi
-      git checkout -- .
-      if [ -n "$(git status --porcelain)" ]; then
-        echo "pull=true" >> "$GITHUB_OUTPUT"
-        git add --all && git commit -m "Merge code from external PR No. ${{ inputs.PR-number }}" --signoff
-        git push --set-upstream origin public_PR_${{ inputs.PR-number }}
+      git fetch opea_rag pull/${{ inputs.PR-number }}/head:external_pr_${{ inputs.PR-number }}
+    shell: bash
+
+  - name: Verify git diff
+    run: |
+      cd internal_repo
+      if git diff --quiet external_pr_${{ inputs.PR-number }}^..external_pr_${{ inputs.PR-number }} -- .github; then
+        echo "No changes in .github directory."
       else
-        echo "No changes to be commited";
+        echo "Changes detected in .github directory."
+        exit 1
       fi
+    shell: bash
+
+  - name: Cherry pick code from public PR
+    run: |
+      cd internal_repo
+      git config user.email "actions@github.com"
+      git config user.name "Github Actions"
+      git checkout public_PR_${{ inputs.PR-number }}
+      git cherry-pick external_pr_${{ inputs.PR-number }}^..external_pr_${{ inputs.PR-number }} -X theirs
+      git push --set-upstream origin public_PR_${{ inputs.PR-number }}
     shell: bash
 
   - name: Install sudo
@@ -59,18 +66,14 @@ runs:
     shell: bash
 
   - name: Create PR
-    if: ${{ steps.pull.outputs.pull == 'true' }}
-    run: gh pr create --base main --head public_PR_${{ inputs.PR-number }} --title 'Public PR No. ${{ inputs.PR-number }}' --body 'PR No. ${{ inputs.PR-number }} from https://github.com/${{ inputs.Repository-name }}' || echo "PR already exists"
+    run: |
+      gh pr create \
+      --base main \
+      --head public_PR_${{ inputs.PR-number }} \
+      --title 'Public PR No. ${{ inputs.PR-number }}' \
+      --body 'PR No. ${{ inputs.PR-number }} from https://github.com/${{ inputs.Repository-name }}/pull/${{ inputs.PR-number }} \
+      :warning: **Do not merge until public PR is merged!**' \
+      || echo "PR already exists"
     shell: bash
     env:
-      GH_TOKEN: ${{ github.token }}
-
-  - name: Verify git diff
-    run: |
-      cd repo
-      echo "git diff with .github/ excluded:"
-      git diff external_pr_{{ inputs.PR-number }} --name-only -- ":(exclude).github/*"
-      if [[ -z "$(git diff external_pr_{{ inputs.PR-number }} --name-only -- ":(exclude).github/*")" ]]; then
-        exit 0;
-      fi
-    shell: bash
+      GH_TOKEN: ${{ inputs.INNERSOURCE_PAT }}
