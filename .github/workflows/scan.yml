@@ -8,6 +8,9 @@ on:
       - "**.md"
       - "**.txt"
 
+  push:
+    branches: [ main ]
+
   release:
     types:
       - created
