@@ -8,13 +8,6 @@ on:
       - "**.md"
       - "**.txt"
 
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - "**.txt"
-
   release:
     types:
       - created
