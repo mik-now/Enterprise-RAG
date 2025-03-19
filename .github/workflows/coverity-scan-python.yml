@@ -1,6 +1,7 @@
 name: Coverity Scans Python
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
 
