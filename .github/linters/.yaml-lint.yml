@@ -3,8 +3,8 @@
 extends: default
 
 ignore: |
-  deployment/microservices-connector/helm/templates/*.yaml
-  telemetry/helm/charts/logs/templates/*.yaml
+  deployment/components/gmc/microservices-connector/helm/templates/*.yaml
+  deployment/components/telemetry/helm/charts/logs/templates/*.yaml
   /workspace/telemetry/helm/charts/logs/templates/*.yaml
 
 rules:
