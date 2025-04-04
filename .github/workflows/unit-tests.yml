@@ -112,3 +112,9 @@ jobs:
         uses: ./.github/actions/unit-tests
         with:
           test-name: edp_unit_tests
+
+      - name: Hierarchical dataprep unit tests
+        if: success() || failure()
+        uses: ./.github/actions/unit-tests
+        with:
+          test-name: hierarchical_dataprep_unit_tests
