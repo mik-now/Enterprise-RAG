@@ -11,3 +11,10 @@ updates:
     open-pull-requests-limit: 0
     schedule:
       interval: "weekly"
+
+  # Enable version updates for JavaScript
+  - package-ecosystem: "npm"
+    directory: "/src/ui"
+    open-pull-requests-limit: 0
+    schedule:
+      interval: "weekly"
