@@ -10,11 +10,11 @@ updates:
     directory: "/"
     open-pull-requests-limit: 0
     schedule:
-      interval: "weekly"
+      interval: "daily"
 
   # Enable version updates for JavaScript
   - package-ecosystem: "npm"
-    directory: "/src/ui"
+    directory: "/"
     open-pull-requests-limit: 0
     schedule:
-      interval: "weekly"
+      interval: "daily"
