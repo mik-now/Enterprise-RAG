@@ -140,7 +140,6 @@ def test_chatqa_change_max_new_tokens(chatqa_api_helper, fingerprint_api_helper)
         fingerprint_api_helper.set_llm_parameters(max_new_tokens=1024)
 
 
-@pytest.mark.smoke
 @allure.testcase("IEASG-T58")
 def test_chatqa_api_call_with_additional_parameters(chatqa_api_helper, fingerprint_api_helper):
     """
@@ -168,7 +167,6 @@ def test_chatqa_api_call_with_additional_parameters(chatqa_api_helper, fingerpri
     assert refreshed_resp.json() == old_arguments
 
 
-@pytest.mark.smoke
 @allure.testcase("IEASG-T42")
 def test_chatqa_concurrent_requests(chatqa_api_helper):
     """

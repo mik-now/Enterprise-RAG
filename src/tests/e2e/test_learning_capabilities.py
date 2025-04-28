@@ -229,6 +229,7 @@ def test_docx_tables(edp_helper, chatqa_api_helper):
     assert chatqa_api_helper.words_in_response(["kren", "talweir"], response), UNRELATED_RESPONSE_MSG
 
 
+@pytest.mark.smoke
 @allure.testcase("IEASG-T165")
 def test_docx_formatted_text(edp_helper, chatqa_api_helper):
     """*.docx file learning capabilities (with formatted text inside the file)"""
@@ -283,6 +284,7 @@ def test_docx_numbered_and_bulleted_lists(edp_helper, chatqa_api_helper):
     assert chatqa_api_helper.words_in_response(["0.43", "0,43"], response), UNRELATED_RESPONSE_MSG
 
 
+@pytest.mark.smoke
 @allure.testcase("IEASG-T169")
 def test_content_is_forgotten_after_file_deletion(edp_helper, chatqa_api_helper):
     """Verify if the content is actually forgotten after file deletion"""

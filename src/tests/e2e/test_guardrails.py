@@ -83,6 +83,7 @@ def test_in_guard_ban_competitors(guard_helper):
     guard_helper.assert_allowed(questions.INTEL)
 
 
+@pytest.mark.smoke
 @allure.testcase("IEASG-T75")
 def test_in_guard_ban_substrings(guard_helper):
     """
@@ -271,6 +272,7 @@ def test_in_guard_regex(guard_helper):
     assert "12345" in response
 
 
+@pytest.mark.smoke
 @allure.testcase("IEASG-T85")
 def test_in_guard_secrets(guard_helper):
     """Check if scanner detects secrets (like token, keys)"""
