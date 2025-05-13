@@ -1,0 +1,97 @@
+name: "Release images to DockerHub"
+
+on:
+  workflow_dispatch:
+    inputs:
+      TAG_SOURCE:
+        description: 'Source tag of images to pull from Harbor'
+        required: true
+      TAG_DESTINATION:
+        description: 'Tag to put on published images into OPEA Dockerhub'
+        required: true
+      TAG_LATEST:
+        description: 'Whether to tag the images with `latest` as well'
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+env:
+  REGISTRY_SOURCE: "ger-is-registry.caas.intel.com/intel-ai"
+  REGISTRY_DESTINATION: "opea"
+
+jobs:
+  publish:
+    runs-on: innersource.prod.amr.dind-xl
+    container: cache-registry.caas.intel.com/cache/library/ubuntu:24.04
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      max-parallel: 3
+      fail-fast: false
+      matrix:
+        image-name:
+          - erag-embedding
+          - erag-mosec_embedding
+          - erag-ovms_embedding
+          - erag-torchserve_embedding
+          - erag-dataprep
+          - erag-llm
+          - erag-gmcmanager
+          - erag-gmcrouter
+          - erag-chatqna-conversation-ui
+          - erag-language-detection
+          - erag-otelcol-contrib-journalctl
+          - erag-vllm-cpu
+          - erag-vllm-gaudi
+          - erag-system-fingerprint
+          - erag-dpguard
+          - erag-in-guard
+          - erag-out-guard
+          - erag-enhanced-dataprep
+          - erag-prompt_template
+          - erag-retriever
+          - erag-ingestion
+          - erag-reranking
+          - erag-torchserve_reranking
+
+    steps:
+      - name: Validate input
+        run: |
+          if [[ "${{ github.event.inputs.TAG_LATEST }}" != "true" && "${{ github.event.inputs.TAG_LATEST }}" != "false" ]]; then
+            echo "Error: TAG_LATEST must be either 'true' or 'false'. Got: '$TAG_LATEST'"
+            exit 1
+          fi
+
+      - name: Download components
+        run: |
+          apt update &&
+          apt install -y curl skopeo=1.13.3+ds1-2ubuntu0.24.04.2
+
+      - name: Download certificates
+        run: |
+          curl http://pki.intel.com/crt/IntelSHA256RootCA.crt > /tmp/IntelSHA256RootCA.crt  &&
+          curl http://certificates.intel.com/repository/certificates/Intel%20Root%20CA.crt > /tmp/IntelRootCA.crt  &&
+          openssl x509 -inform der -in /tmp/IntelSHA256RootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelSHA256RootCA-base64.crt  &&
+          openssl x509 -inform der -in /tmp/IntelRootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelRootCA-base64.crt  &&
+          update-ca-certificates
+
+      - name: Run publish
+        run: |
+          skopeo copy \
+          --src-creds='${{ vars.RELEASE_IMG_HARBOR_PROD_USER }}':'${{ secrets.RELEASE_IMG_HARBOR_PROD_PASS }}' \
+          --dest-creds='${{ vars.RELEASE_IMG_DOCKERHUB_USER }}':'${{ secrets.RELEASE_IMG_DOCKERHUB_PASS }}' \
+          docker://${{ env.REGISTRY_SOURCE }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG_SOURCE }} \
+          docker://${{ env.REGISTRY_DESTINATION }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG_DESTINATION }}
+
+      - name: Run publish with latest tag
+        if: github.event.inputs.TAG_LATEST == 'true'
+        run: |
+          skopeo copy \
+          --src-creds='${{ vars.RELEASE_IMG_HARBOR_PROD_USER }}':'${{ secrets.RELEASE_IMG_HARBOR_PROD_PASS }}' \
+          --dest-creds='${{ vars.RELEASE_IMG_DOCKERHUB_USER }}':'${{ secrets.RELEASE_IMG_DOCKERHUB_PASS }}' \
+          docker://${{ env.REGISTRY_SOURCE }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG_SOURCE }} \
+          docker://${{ env.REGISTRY_DESTINATION }}/${{ matrix.image-name }}:latest
