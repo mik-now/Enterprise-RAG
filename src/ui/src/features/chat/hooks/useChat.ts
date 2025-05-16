@@ -8,6 +8,7 @@ import { usePostPromptMutation } from "@/features/chat/api";
 import { ABORT_ERROR_MESSAGE, HTTP_ERRORS } from "@/features/chat/config/api";
 import {
   addNewConversationTurn,
+  resetConversationFeedSlice,
   selectConversationTurns,
   selectUserInput,
   setUserInput,
@@ -85,10 +86,19 @@ const useChat = () => {
     abortController.current.abort(ABORT_ERROR_MESSAGE);
   };
 
+  const onNewChat = () => {
+    if (isChatResponsePending) {
+      onRequestAbort();
+    }
+
+    dispatch(resetConversationFeedSlice());
+  };
+
   return {
     userInput,
     conversationTurns,
     isChatResponsePending,
+    onNewChat,
     onPromptChange,
     onPromptSubmit,
     onRequestAbort,
