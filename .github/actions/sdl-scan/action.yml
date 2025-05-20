@@ -79,7 +79,7 @@ runs:
     - name: SDLe Scans
       if: ${{ github.event.pull_request.head.repo.full_name == inputs.Repository-name }}
       id: compliance
-      uses: intel-innersource/frameworks.actions.idf-central-scan@v1
+      uses: intel-innersource/frameworks.actions.idf-central-scan@v1.9.0
       with:
         config: .github/BuildConfig.json
         ref: ${{ env.SHA_TO_TEST }}
