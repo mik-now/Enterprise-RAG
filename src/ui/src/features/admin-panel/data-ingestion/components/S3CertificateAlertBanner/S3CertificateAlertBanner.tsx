@@ -35,7 +35,7 @@ const S3CertificateAlertBanner = () => {
     dispatch(s3Api.util.resetApiState());
   };
 
-  const handleDismissBtnClick = () => {
+  const handleDismissBtnPress = () => {
     setHasErrors(false);
     dispatch(s3Api.util.resetApiState());
   };
@@ -63,7 +63,7 @@ const S3CertificateAlertBanner = () => {
         If you believe this is a false positive, you can dismiss this alert
         using the button below.
       </p>
-      <Button variant="outlined" size="sm" onClick={handleDismissBtnClick}>
+      <Button variant="outlined" size="sm" onPress={handleDismissBtnPress}>
         Dismiss
       </Button>
     </div>
