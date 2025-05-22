@@ -31,7 +31,7 @@ const S3CertificateAlertBanner = () => {
     setHasErrors(allErrors.length > 0);
   }, [allErrors.length]);
 
-  const handleS3UrlClick = () => {
+  const handleS3UrlPress = () => {
     dispatch(s3Api.util.resetApiState());
   };
 
@@ -55,7 +55,7 @@ const S3CertificateAlertBanner = () => {
       <Anchor
         href={s3Url}
         className="text-light-text-inverse"
-        onClick={handleS3UrlClick}
+        onPress={handleS3UrlPress}
       >
         {s3Url}
       </Anchor>
