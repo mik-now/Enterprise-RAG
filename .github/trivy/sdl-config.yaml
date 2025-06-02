@@ -1,0 +1,40 @@
+# Trivy Container Image Scan Configuration
+# -----------------------------------------------------------------------------
+# Use this Trivy configuration file in your scan to generate evidence for
+# CT248. This configuration file is setup to scan for vulnerabilities and for
+# secrets.
+# Imported from: https://github.com/intel-innersource/applications.security.sdl.trivy/blob/main/trivy-image-config.yaml
+# Adjusted:
+#  - secret scan removed
+#  - extended timeout
+# -----------------------------------------------------------------------------
+
+# Longer timeout
+timeout: 40m
+
+# Exit code (for use with automation)
+exit-code: 2
+
+# Listing all packages for dependency output
+list-all-pkgs: true
+
+# Report format/template/output option
+format: template
+template: '@repo/.github/trivy/sdl-template.tpl'
+output: sdl-scan-results.csv
+
+# Image scanner configuration
+# Scanning for vulnerabilities & secrets in image configuration
+scan:
+  scanners:
+    - vuln
+
+pkg:
+  types: [library]
+
+severity:
+  - HIGH
+  - CRITICAL
+
+skip-dirs:
+  - /compliance/

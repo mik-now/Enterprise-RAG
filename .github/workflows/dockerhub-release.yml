@@ -66,7 +66,7 @@ jobs:
             exit 1
           fi
 
-      - name: Download components
+      - name: Install dependencies
         run: |
           apt update &&
           apt install -y curl skopeo=1.13.3+ds1-2ubuntu0.24.04.2

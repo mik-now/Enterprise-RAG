@@ -1,4 +1,4 @@
-name: "Trivy Scan"
+name: "Trivy Scan of PR (deprecated)"
 
 on:
   workflow_dispatch:
@@ -22,6 +22,11 @@ jobs:
             ref: refs/pull/${{ github.event.inputs.PR_number }}/head
 
       - name: Trivy scan
-        uses: ./.github/actions/trivy-scan
+        uses: ./.github/actions/trivy-scan-pr
         with:
           PR-number: ${{ github.event.inputs.PR_number }}
+
+      - name: Warn about deprecation
+        run: |
+          echo "### ⚠️ Job deprecated! ⚠️ \n" >> $GITHUB_STEP_SUMMARY
+          echo "This job seems unused for long time. It's about to become deleted. If you think we should keep it, contact Kurzacz, Kamil <kamil.kurzacz@intel.com>" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,187 @@
+name: Images security scans
+
+on:
+  workflow_dispatch:
+    inputs:
+      TAG:
+        description: Tag of images
+        required: true
+
+env:
+  REGISTRY: ger-is-registry.caas.intel.com/intel-ai
+
+jobs:
+  scan:
+    name: "Scan image - ${{ matrix.image-name }}"
+    runs-on: innersource.prod.amr.dind
+    container:
+      image: aquasec/trivy
+      options: --entrypoint ""
+    strategy:
+      fail-fast: false
+      matrix:
+        image-name:
+          - erag-embedding
+          - erag-mosec_embedding
+          - erag-ovms_embedding
+          - erag-torchserve_embedding
+          - erag-dataprep
+          - erag-llm
+          - erag-gmcmanager
+          - erag-gmcrouter
+          - erag-chatqna-conversation-ui
+          - erag-language-detection
+          - erag-otelcol-contrib-journalctl
+          - erag-vllm-cpu
+          - erag-vllm-gaudi
+          - erag-system-fingerprint
+          - erag-dpguard
+          - erag-in-guard
+          - erag-out-guard
+          - erag-enhanced-dataprep
+          - erag-prompt_template
+          - erag-retriever
+          - erag-ingestion
+          - erag-reranking
+          - erag-torchserve_reranking
+
+    env:
+      TRIVY_USERNAME: ${{ vars.RELEASE_IMG_HARBOR_PROD_USER }}
+      TRIVY_PASSWORD: ${{ secrets.RELEASE_IMG_HARBOR_PROD_PASS }}
+      TRIVY_DISABLE_VEX_NOTICE: true
+      ERROR_RC: 1   # Error means test did not even finish
+      FAIL_RC: 2    # Fail means scan was done correctly, but found issues
+    steps:
+      - name: Install dependencies
+        run: apk add curl openssl
+
+      - name: Download certificates
+        run: |
+          curl http://pki.intel.com/crt/IntelSHA256RootCA.crt > /tmp/IntelSHA256RootCA.crt  &&
+          curl http://certificates.intel.com/repository/certificates/Intel%20Root%20CA.crt > /tmp/IntelRootCA.crt  &&
+          openssl x509 -inform der -in /tmp/IntelSHA256RootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelSHA256RootCA-base64.crt  &&
+          openssl x509 -inform der -in /tmp/IntelRootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelRootCA-base64.crt  &&
+          update-ca-certificates
+
+      - name: Run the full scan
+        id: trivy-full
+        run: |
+          # When trivy fails, bash will exit immeadiately.
+          # Thus, command to collect exit code normal way is pointless. See more:
+          # https://github.com/orgs/community/discussions/46992
+
+          trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
+
+          trivy image -q \
+            --pkg-types library \
+            --exit-code ${{ env.FAIL_RC }} \
+            --timeout 40m \
+            --ignore-unfixed \
+            --skip-dirs "/compliance" \
+            --format table \
+            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}} \
+          > trivy-report.txt
+        continue-on-error: true
+
+      - name: Rerun the full scan in debug
+        if: ${{ steps.trivy-full.outputs.exit-code == env.ERROR_RC }}
+        run: |
+          echo "::error::Trivy scan had errors when running"
+          trivy image -d \
+            --pkg-types library \
+            --timeout 40m \
+            --ignore-unfixed \
+            --skip-dirs "/compliance" \
+            --format table \
+            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}}
+          exit ${{ env.ERROR_RC }}
+
+      # If Trivy didn't error, run it again configured for SDL reporting
+      - name: Checkout Trivy configuration for SDL
+        if: ${{ steps.trivy-full.outputs.exit-code != env.ERROR_RC }}
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Run the scan for SDL report
+        id: trivy-sdl
+        if: ${{ steps.trivy-full.outputs.exit-code != env.ERROR_RC }}
+        run: |
+          trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
+          trivy image -d \
+            --config repo/.github/trivy/sdl-config.yaml \
+            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}}
+          echo "exit-code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Rename SDL report
+        if: ${{ steps.trivy-sdl.outcome == 'success' }}
+        run: mv sdl-scan-results.csv sdl-scan-results-${{ matrix.image-name }}.csv
+
+      - name: Upload Trivy report for SDL
+        if: ${{ steps.trivy-sdl.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report-sdl-${{ matrix.image-name }}
+          path: sdl-scan-results-${{ matrix.image-name }}.csv
+
+      - name: Present Trivy report
+        run: |
+          FULL_RC=${{ steps.trivy-full.outputs.exit-code }}
+          SDL_RC=${{ steps.trivy-sdl.outputs.exit-code }}
+
+          if [ "$FULL_RC" -eq ${{ env.ERROR_RC }} ] || [ "$SDL_RC" -eq ${{ env.ERROR_RC }} ]; then
+            echo ":exclamation: Full or SDL Trivy scan faced errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$FULL_RC" -eq 0 ]; then
+            if [ "$SDL_RC" -eq 0 ]; then
+              echo ":white_check_mark: Scan positive" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":bangbang: Something went wrong in Trivy SDL scan. Full scan passed, but SDL scan finished with: ${SDL_RC}" >> $GITHUB_STEP_SUMMARY
+            fi
+          elif [ "$FULL_RC" -eq ${{ env.FAIL_RC }} ]; then
+            if [ "$SDL_RC" -eq 0 ]; then
+              echo ":warning: SDL scans passed with issues of severity below <code>HIGH<code>" >> $GITHUB_STEP_SUMMARY
+            elif [ "$SDL_RC" -eq ${{ env.FAIL_RC }} ]; then
+              echo ":x: Scan negative" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          if [ -f trivy-report.txt ]; then
+            echo '<details>' >> $GITHUB_STEP_SUMMARY
+            echo '<summary>Full report</summary>' >> $GITHUB_STEP_SUMMARY
+            echo "<pre>" >> $GITHUB_STEP_SUMMARY
+            cat trivy-report.txt >> $GITHUB_STEP_SUMMARY
+            echo "</pre>" >> $GITHUB_STEP_SUMMARY
+            echo '</details>' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail workflow if the Trivy SDL scan failed
+        if: ${{ steps.trivy-sdl.outcome == 'failure' }}
+        run: |
+          echo "::error::Trivy SDL scan did not finish successfully"
+          exit 1
+
+  collect-results:
+    name: Archive results for SDL reporting
+    runs-on: innersource.prod.amr.dind
+    needs: scan
+    container: cache-registry.caas.intel.com/cache/library/ubuntu:24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./results
+
+      - name: List downloaded files
+        run: ls -R ./results
+
+      - name: Upload final archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results-archive
+          path: ./results
