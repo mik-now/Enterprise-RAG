@@ -79,7 +79,7 @@ jobs:
             --ignore-unfixed \
             --skip-dirs "/compliance" \
             --format table \
-            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}} \
+            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }} \
           > trivy-report.txt
         continue-on-error: true
 
@@ -93,7 +93,7 @@ jobs:
             --ignore-unfixed \
             --skip-dirs "/compliance" \
             --format table \
-            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}}
+            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}
           exit ${{ env.ERROR_RC }}
 
       # If Trivy didn't error, run it again configured for SDL reporting
@@ -110,7 +110,7 @@ jobs:
           trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
           trivy image -d \
             --config repo/.github/trivy/sdl-config.yaml \
-            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}}
+            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}
           echo "exit-code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
