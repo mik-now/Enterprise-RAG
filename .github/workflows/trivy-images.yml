@@ -76,7 +76,6 @@ jobs:
             --pkg-types library \
             --exit-code ${{ env.FAIL_RC }} \
             --timeout 40m \
-            --ignore-unfixed \
             --skip-dirs "/compliance" \
             --format table \
             ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }} \
@@ -110,6 +109,7 @@ jobs:
           trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
           trivy image -d \
             --config repo/.github/trivy/sdl-config.yaml \
+            --ignore-unfixed \
             ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}
           echo "exit-code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
@@ -142,7 +142,7 @@ jobs:
             fi
           elif [ "$FULL_RC" -eq ${{ env.FAIL_RC }} ]; then
             if [ "$SDL_RC" -eq 0 ]; then
-              echo ":warning: SDL scans passed with issues of severity below <code>HIGH<code>" >> $GITHUB_STEP_SUMMARY
+              echo ":warning: SDL scans passed with issues of severity below <code>HIGH</code> or unfixable ones." >> $GITHUB_STEP_SUMMARY
             elif [ "$SDL_RC" -eq ${{ env.FAIL_RC }} ]; then
               echo ":x: Scan negative" >> $GITHUB_STEP_SUMMARY
             fi
@@ -151,9 +151,9 @@ jobs:
           if [ -f trivy-report.txt ]; then
             echo '<details>' >> $GITHUB_STEP_SUMMARY
             echo '<summary>Full report</summary>' >> $GITHUB_STEP_SUMMARY
-            echo "<pre>" >> $GITHUB_STEP_SUMMARY
+            echo "<code>" >> $GITHUB_STEP_SUMMARY
             cat trivy-report.txt >> $GITHUB_STEP_SUMMARY
-            echo "</pre>" >> $GITHUB_STEP_SUMMARY
+            echo "</code>" >> $GITHUB_STEP_SUMMARY
             echo '</details>' >> $GITHUB_STEP_SUMMARY
           fi
 
