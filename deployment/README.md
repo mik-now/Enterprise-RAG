@@ -35,8 +35,9 @@ This document details the deployment of Intel® AI for Enterprise RAG. By defaul
     2. [Enabling Pod Security Admission (PSA)](#enabling-pod-security-admission-psa)
     3. [Running Enterprise RAG with Intel® Trust Domain Extensions (Intel® TDX)](#running-enterprise-rag-with-intel-trust-domain-extensions-intel-tdx)
     4. [Redis Vector Database Performance Settings](#redis-vector-database-performance-settings)
-    5. [Single Sign-On Integration Using Microsoft Entra ID](#single-sign-on-integration-using-microsoft-entra-id-formerly-azure-active-directory)
-    6. [Backup Functionality with VMWare Velero](#backup-functionality-with-vmware-velero)
+    5. [Vector Database RBAC support](#vector-database-rbac-support)
+    6. [Single Sign-On Integration Using Microsoft Entra ID](#single-sign-on-integration-using-microsoft-entra-id-formerly-azure-active-directory)
+    7. [Backup Functionality with VMWare Velero](#backup-functionality-with-vmware-velero)
 ---
 
 ## Verify System Status
@@ -657,6 +658,31 @@ vector_databases:
 
 In case of `redis-cluster`, all above settings are applied for each cluster node.
 
+### Vector Database RBAC support
+
+Configuration is split into two parts:
+  - Configuration of RBAC validation type - this is done in EDP. Defines what validation configuration should be loaded and performed. EDP backend is responsible for processing the request and returning validated buckets accesses for requests
+  - Configuration for RBAC usage - this is done in pipeline's retriever. If enabled - additional query filtering is applied. If not enabled, no additional request for filters is performed.
+
+This is configurable via `deployment/inventory/**/config.yaml`, for example:
+
+```yaml
+backend:
+  config:
+    rbac:
+      enabled: true
+      validationType: "CACHED" # "NONE", "ALWAYS", "CACHED", "STATIC"
+      cacheExpiration: "60" # in seconds
+```
+
+Above configuration shows a sample config to enable cached validated bucket list retrieval. Available validation types are:
+- "NONE" - transparent validation, the default unrestricted list of buckets is returned
+- "ALWAYS" - each request accesses storage to filter buckets that the user has access to
+- "CACHED" - similar to "ALWAYS" but the responses are cached with a configurable TTL to reduce latency
+- "STATIC" - static map of bucket restrictions. Configurable as a bucket list array, or as a dict of user_id's mapped arrays of buckets.
+
+For more details refer to [EDP's documentation](../src/edp/README.md).
+
 ### Single Sign-On Integration Using Microsoft Entra ID (formerly Azure Active Directory)
 
 #### Prerequisites
@@ -672,7 +698,24 @@ In case of `redis-cluster`, all above settings are applied for each cluster node
     - in App registration -> Manage -> Certificates & secrets -> New client secret - create and save `Client secret` value
 3. Add users to the newly created groups, either `erag-admins` or `erag-users` in Microsoft Entra ID
 
-#### Keycloak Configuration
+#### Keycloak Configuration via Ansible
+
+To automatically configure Keycloak during deployment to use SSO configue the following settings in `deployment/inventory/**/config.yaml`
+
+```yaml
+keycloak:
+  oidc:
+    endpoint: ""
+    alias: ""
+    client_id: ""
+    client_secret: ""
+    admin_gid: ""
+    user_gid: ""
+```
+
+`admin_gid` and `user_gid` fields are optional - you can configure them later if you do not want to use hardcoded groups.
+
+#### Keycloak Configuration via Keycloak Web-GUI
 
 To configure Enterprise RAG SSO using Azure Single Sign-On, follow these steps:
 

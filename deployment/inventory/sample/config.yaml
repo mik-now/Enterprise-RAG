@@ -91,6 +91,8 @@ edp:
   namespace: edp
   dpGuard:
     enabled: false
+  rbac:
+    enabled: false
   storageType: minio
   minio:
     bucketNameRegexFilter: ".*"
