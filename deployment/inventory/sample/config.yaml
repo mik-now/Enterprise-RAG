@@ -70,6 +70,11 @@ istio:
   enabled: true
   namespace: istio-system
 
+velero:
+  enabled: false
+  namespace: velero
+  storageType: minio
+
 telemetry:
   enabled: true
   monitoring:

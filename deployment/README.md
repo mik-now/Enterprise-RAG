@@ -36,6 +36,7 @@ This document details the deployment of Intel® AI for Enterprise RAG. By defaul
     3. [Running Enterprise RAG with Intel® Trust Domain Extensions (Intel® TDX)](#running-enterprise-rag-with-intel-trust-domain-extensions-intel-tdx)
     4. [Redis Vector Database Performance Settings](#redis-vector-database-performance-settings)
     5. [Single Sign-On Integration Using Microsoft Entra ID](#single-sign-on-integration-using-microsoft-entra-id-formerly-azure-active-directory)
+    6. [Backup Functionality with VMWare Velero](#backup-functionality-with-vmware-velero)
 ---
 
 ## Verify System Status
@@ -703,3 +704,177 @@ To configure Enterprise RAG SSO using Azure Single Sign-On, follow these steps:
 After this configuration, the Keycloak login page should have an additional link at the bottom of the login form - named `Enterprise SSO`. This should redirect you to the Azure login page.
 
 Depending on users' group membership in Microsoft Entra ID (either `erag-admins` or `erag-users`), users will have appropriate permissions mapped. For example, `erag-admins` will have access to the admin panel.
+
+### Backup Functionality with VMWare Velero
+
+Backup functionality has been added to Enterprise RAG to offer protection and reduce downtime in case of accidents.
+
+This feature is currently disabled by default - due to certain configuration and maintenance effort that is related to this.
+
+#### Prerequisites
+
+- Install a `StorageClass` with support for volume snapshots.<br>
+  Velero works with volumes provisioned with a dedicated `StorageClass`, supporting volume snapshot.
+  The [default solution](https://github.com/intel-innersource/applications.ai.enterprise-rag.enterprise-ai-solution/tree/main?tab=readme-ov-file#software-prerequisites) mentioned in documentation doesn't offer that.<br>
+  To evaluate backup you may try NFS CSI storage driver mentioned in document [evaluation_of_backup](../docs/evaluation_of_backup.md). Please note that it might not your specific needs in the long run.
+
+- Ensure suitable object storage for backups.<br>
+  Backup functionality is installed with a basic instance of Minio object storage.<br>
+  You may need to adjust Minio settings to make sure it meets your requirements.
+
+- Install [velero cli](https://github.com/vmware-tanzu/velero/releases/tag/v1.16.1) for evaluation.
+
+#### Installation
+
+- Enable velero in cluster configuration file`inventory/sample/config.yaml`:
+  ```yaml
+  velero:
+    enabled: false
+    namespace: velero
+    storageType: minio
+  ```
+
+  Then simply run installation playbook.
+
+#### Create Partial Backup
+
+You may use cli to start a backup of namespace `edp`:
+```bash
+velero backup create edp-backup --include-namespaces edp --csi-snapshot-timeout=2h --item-operation-timeout=2h
+
+Backup request "edp-backup" submitted successfully.
+```
+
+> __Note__
+>
+> Backup resources must have unique names; it's probably a good idea to suffix them with date-derived string.
+
+Right after completion of that command you may review outcome of the backup:
+- First make sure that `velero` can reach kubernetes API - if `kubectl` works, velero will as well.
+
+- To gather details you need to expose `minio` service locally.<br>
+  Forward minio port 9000:
+  ```bash
+  # it's probably better to start this in a separate terminal
+  kubectl port-forward --namespace velero svc/velero-minio 9000:9000
+  ```
+  And add an alias for `velero-minio.velero.svc` to `/etc/hosts`:
+  ```bash
+  # /etc/hosts
+  127.0.0.1 localhost velero-minio.velero.svc
+  ```
+
+- Then call velero to review details:
+  ```bash
+  velero backup describe edp-backup --details
+  ```
+
+#### Restore From Partial Backup
+
+Assuming that the backup was created under name `edp-backup_1` this command will trigger a restore:
+```bash
+velero restore create --item-operation-timeout=2h --from-backup edp-backup_1 -o yaml | kubectl apply -f -
+
+restore.velero.io/edp-backup_1-20250617173441 created
+```
+
+Right after that you may review status of the restore -
+- either with `kubectl describe restore.velero.io/edp-backup_1-20250617173441 -n velero`
+- or with cli: `velero restore describe edp-backup_1-20250617173441 --details`.
+
+> __Note__
+>
+> Restore works best when original resources were removed - that especially true for `PersistentVolumes`.
+
+#### Full Backup of User Data
+
+This paragraph describes steps that are necessary to secure data coming from user. These include:
+- ingested vector data,
+- ingested documents,
+- user accounts and credentials.
+
+To create backup create a `Backup` resource in file `backup-userdata.yaml`:
+```yaml
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  creationTimestamp: null
+  name: userdata-250617-210655
+  namespace: velero
+spec:
+  csiSnapshotTimeout: 2h0m0s
+  hooks: {}
+  includedNamespaces:
+  - fingerprint
+  - edp
+  - auth
+  - chatqa
+  - vdb
+  itemOperationTimeout: 2h0m0s
+  labelSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/instance
+      operator: NotIn
+      values:
+      - torchserve_embedding
+      - vllm
+  metadata: {}
+  ttl: 0s
+status: {}
+```
+
+Now apply the backup with kubectl:
+```bash
+kubectl apply -f backup-userdata.yaml
+
+## check status of backup to learn if it is finished:
+
+```
+
+- Then call velero to review details:
+  ```bash
+  velero backup describe userdata-250617-210655 --details
+  ```
+
+> __Note__
+>
+> The name of the backup resource must be unique.
+
+#### Full Restore of User Data
+
+This paragraph describes steps that are necessary to restore data from full backup created in previous step.
+
+- Uninstall deployments that are to be restored:
+  ```bash
+  helm delete fingerprint -n fingerprint
+  helm delete edp -n edp
+  helm delete vdb -n vdb
+  helm delete keycloak -n auth
+  ```
+
+- Delete volumes to allow replacing them with data from backup:
+  ```bash
+  kubectl get pvc -n edp -o name | xargs kubectl delete -n edp
+  kubectl get pvc -n vdb -o name | xargs kubectl delete -n vdb
+  kubectl get pvc -n fingerprint -o name | xargs kubectl delete -n fingerprint
+  kubectl get pvc -n auth -o name | xargs kubectl delete -n auth
+  ```
+
+- Finally execute restore with command:
+```bash
+velero restore create --item-operation-timeout=2h --from-backup userdata-250617-210655 -o yaml | kubectl apply -f -
+
+restore.velero.io/userdata-250617-210655-20250617173441 created
+```
+
+Right after that you may review status of the restore -
+- either with `kubectl describe restore.velero.io/userdata-250617-210655-20250617173441 -n velero`
+- or with cli: `velero restore describe userdata-250617-210655-20250617173441 --details`.
+
+```
+
+
+#### Backup Links
+
+- [Kubernetes CSI Documentation](https://kubernetes-csi.github.io/docs/)
+- [Velero documentation](https://velero.io/docs/)
