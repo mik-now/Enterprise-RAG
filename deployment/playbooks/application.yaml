@@ -160,13 +160,6 @@
       tags:
         - uninstall
 
-    - name: Verify if all pods are in desired state
-      ansible.builtin.include_role:
-        name: check_pods
-      tags:
-        - install
-        - uninstall
-
     - name: Delete tmp directory
       ansible.builtin.file:
         path: "{{ item }}"
@@ -176,3 +169,10 @@
         - "{{ tmp_dir }}"
       tags:
         - install
+
+    - name: Verify if all pods are in desired state
+      ansible.builtin.include_role:
+        name: check_pods
+      tags:
+        - install
+        - uninstall
