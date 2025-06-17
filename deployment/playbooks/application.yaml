@@ -43,6 +43,14 @@
         - install
         - uninstall
 
+    - name: Install NRI balloons policy
+      include_role:
+        name: nri_balloons
+      when: balloons.enabled
+      tags:
+        - install
+        - uninstall
+
     - name: Run vector_databases role
       include_role:
         name: vector_databases
