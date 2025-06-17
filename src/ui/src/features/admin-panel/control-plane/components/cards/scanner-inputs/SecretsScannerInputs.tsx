@@ -5,24 +5,21 @@ import { ScannerInputsProps } from "@/features/admin-panel/control-plane/compone
 import ScannerInputsTitle from "@/features/admin-panel/control-plane/components/cards/scanner-inputs/ScannerInputsTitle";
 import ServiceArgumentCheckbox from "@/features/admin-panel/control-plane/components/ServiceArgumentCheckbox/ServiceArgumentCheckbox";
 import ServiceArgumentSelectInput from "@/features/admin-panel/control-plane/components/ServiceArgumentSelectInput/ServiceArgumentSelectInput";
-import ServiceArgumentTextInput from "@/features/admin-panel/control-plane/components/ServiceArgumentTextInput/ServiceArgumentTextInput";
-import ServiceArgumentThreeStateSwitch from "@/features/admin-panel/control-plane/components/ServiceArgumentThreeStateSwitch/ServiceArgumentThreeStateSwitch";
 import {
-  RegexScannerArgs,
-  RegexScannerConfig,
+  SecretsScannerArgs,
+  SecretsScannerConfig,
 } from "@/features/admin-panel/control-plane/config/chat-qna-graph/guards/scanners";
 import useGuardScannerInputs from "@/features/admin-panel/control-plane/hooks/useGuardScannerInputs";
 
-const RegexScannerInputs = ({
+const SecretsScannerInputs = ({
   previousArgumentsValues,
   config,
   handlers,
-}: ScannerInputsProps<RegexScannerArgs, RegexScannerConfig>) => {
-  const {
-    titleCasedName,
-    handleArgumentValueChange,
-    handleArgumentValidityChange,
-  } = useGuardScannerInputs("regex", handlers);
+}: ScannerInputsProps<SecretsScannerArgs, SecretsScannerConfig>) => {
+  const { titleCasedName, handleArgumentValueChange } = useGuardScannerInputs(
+    "secrets",
+    handlers,
+  );
 
   return (
     <>
@@ -32,24 +29,13 @@ const RegexScannerInputs = ({
         initialValue={previousArgumentsValues.enabled}
         onArgumentValueChange={handleArgumentValueChange}
       />
-      <ServiceArgumentTextInput
-        {...config.patterns}
-        initialValue={previousArgumentsValues.patterns}
-        onArgumentValueChange={handleArgumentValueChange}
-        onArgumentValidityChange={handleArgumentValidityChange}
-      />
       <ServiceArgumentSelectInput
-        {...config.match_type}
-        initialValue={previousArgumentsValues.match_type}
+        {...config.redact_mode}
+        initialValue={previousArgumentsValues.redact_mode}
         onArgumentValueChange={handleArgumentValueChange}
-      />
-      <ServiceArgumentThreeStateSwitch
-        {...config.redact}
-        initialValue={previousArgumentsValues.redact}
-        onChange={handleArgumentValueChange}
       />
     </>
   );
 };
 
-export default RegexScannerInputs;
+export default SecretsScannerInputs;

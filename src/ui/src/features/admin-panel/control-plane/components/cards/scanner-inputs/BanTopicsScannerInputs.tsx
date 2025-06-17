@@ -4,25 +4,24 @@
 import { ScannerInputsProps } from "@/features/admin-panel/control-plane/components/cards/scanner-inputs";
 import ScannerInputsTitle from "@/features/admin-panel/control-plane/components/cards/scanner-inputs/ScannerInputsTitle";
 import ServiceArgumentCheckbox from "@/features/admin-panel/control-plane/components/ServiceArgumentCheckbox/ServiceArgumentCheckbox";
-import ServiceArgumentSelectInput from "@/features/admin-panel/control-plane/components/ServiceArgumentSelectInput/ServiceArgumentSelectInput";
+import ServiceArgumentNumberInput from "@/features/admin-panel/control-plane/components/ServiceArgumentNumberInput/ServiceArgumentNumberInput";
 import ServiceArgumentTextInput from "@/features/admin-panel/control-plane/components/ServiceArgumentTextInput/ServiceArgumentTextInput";
-import ServiceArgumentThreeStateSwitch from "@/features/admin-panel/control-plane/components/ServiceArgumentThreeStateSwitch/ServiceArgumentThreeStateSwitch";
 import {
-  RegexScannerArgs,
-  RegexScannerConfig,
+  BanTopicsScannerArgs,
+  BanTopicsScannerConfig,
 } from "@/features/admin-panel/control-plane/config/chat-qna-graph/guards/scanners";
 import useGuardScannerInputs from "@/features/admin-panel/control-plane/hooks/useGuardScannerInputs";
 
-const RegexScannerInputs = ({
+const BanTopicsScannerInputs = ({
   previousArgumentsValues,
   config,
   handlers,
-}: ScannerInputsProps<RegexScannerArgs, RegexScannerConfig>) => {
+}: ScannerInputsProps<BanTopicsScannerArgs, BanTopicsScannerConfig>) => {
   const {
     titleCasedName,
     handleArgumentValueChange,
     handleArgumentValidityChange,
-  } = useGuardScannerInputs("regex", handlers);
+  } = useGuardScannerInputs("ban_topics", handlers);
 
   return (
     <>
@@ -33,23 +32,19 @@ const RegexScannerInputs = ({
         onArgumentValueChange={handleArgumentValueChange}
       />
       <ServiceArgumentTextInput
-        {...config.patterns}
-        initialValue={previousArgumentsValues.patterns}
+        {...config.topics}
+        initialValue={previousArgumentsValues.topics}
         onArgumentValueChange={handleArgumentValueChange}
         onArgumentValidityChange={handleArgumentValidityChange}
       />
-      <ServiceArgumentSelectInput
-        {...config.match_type}
-        initialValue={previousArgumentsValues.match_type}
+      <ServiceArgumentNumberInput
+        {...config.threshold}
+        initialValue={previousArgumentsValues.threshold}
         onArgumentValueChange={handleArgumentValueChange}
-      />
-      <ServiceArgumentThreeStateSwitch
-        {...config.redact}
-        initialValue={previousArgumentsValues.redact}
-        onChange={handleArgumentValueChange}
+        onArgumentValidityChange={handleArgumentValidityChange}
       />
     </>
   );
 };
 
-export default RegexScannerInputs;
+export default BanTopicsScannerInputs;

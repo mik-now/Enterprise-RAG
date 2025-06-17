@@ -304,6 +304,11 @@ celery:
         configMapKeyRef:
           name: edp-configmap
           key: DPGUARD_ENDPOINT
+    - name: FINGERPRINT_ENDPOINT
+      valueFrom:
+        configMapKeyRef:
+          name: edp-configmap
+          key: FINGERPRINT_ENDPOINT
     - name: DATABASE_HOST
       valueFrom:
         secretKeyRef:
