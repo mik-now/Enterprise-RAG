@@ -168,7 +168,7 @@ class EdpHelper(ApiRequestHelper):
                         last_status_message = "no previous status known."
                         if file_status:
                             last_status_message = f"last known status {file_status}."
-                        raise FileStatusException(f"File {filename} has status {file.get("status")}, {last_status_message}")
+                        raise FileStatusException(f"File {filename} has status {file.get('status')}, {last_status_message}")
                     file_status = file.get("status")
                     if self._status_reached(file_status, desired_status):
                         logger.info(f"File {filename} has status {desired_status}. "
