@@ -38,7 +38,6 @@ jobs:
           - erag-mosec_embedding
           - erag-ovms_embedding
           - erag-torchserve_embedding
-          - erag-dataprep
           - erag-llm
           - erag-gmcmanager
           - erag-gmcrouter
@@ -57,6 +56,10 @@ jobs:
           - erag-ingestion
           - erag-reranking
           - erag-torchserve_reranking
+          - erag-hierarchical-dataprep-usvc
+          - erag-text-compression
+          - erag-text-extractor
+          - erag-text-splitter
 
     steps:
       - name: Validate input

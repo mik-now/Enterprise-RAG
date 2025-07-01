@@ -9,6 +9,7 @@ on:
 
 env:
   REGISTRY: ger-is-registry.caas.intel.com/intel-ai
+  IMAGE_NAME_PREFIX: "erag-"
 
 jobs:
   scan:
@@ -21,29 +22,32 @@ jobs:
       fail-fast: false
       matrix:
         image-name:
-          - erag-embedding
-          - erag-mosec_embedding
-          - erag-ovms_embedding
-          - erag-torchserve_embedding
-          - erag-dataprep
-          - erag-llm
-          - erag-gmcmanager
-          - erag-gmcrouter
-          - erag-chatqna-conversation-ui
-          - erag-language-detection
-          - erag-otelcol-contrib-journalctl
-          - erag-vllm-cpu
-          - erag-vllm-gaudi
-          - erag-system-fingerprint
-          - erag-dpguard
-          - erag-in-guard
-          - erag-out-guard
-          - erag-enhanced-dataprep
-          - erag-prompt_template
-          - erag-retriever
-          - erag-ingestion
-          - erag-reranking
-          - erag-torchserve_reranking
+          - embedding
+          - mosec_embedding
+          - ovms_embedding
+          - torchserve_embedding
+          - llm
+          - gmcmanager
+          - gmcrouter
+          - chatqna-conversation-ui
+          - language-detection
+          - otelcol-contrib-journalctl
+          - vllm-cpu
+          - vllm-gaudi
+          - system-fingerprint
+          - dpguard
+          - in-guard
+          - out-guard
+          - enhanced-dataprep
+          - prompt_template
+          - retriever
+          - ingestion
+          - reranking
+          - torchserve_reranking
+          - hierarchical-dataprep-usvc
+          - text-compression
+          - text-extractor
+          - text-splitter
 
     env:
       TRIVY_USERNAME: ${{ vars.RELEASE_IMG_HARBOR_PROD_USER }}
@@ -63,6 +67,12 @@ jobs:
           openssl x509 -inform der -in /tmp/IntelRootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelRootCA-base64.crt  &&
           update-ca-certificates
 
+      - name: Create full image URI
+        run: |
+          uri="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}${{ matrix.image-name }}:${{ github.event.inputs.TAG }}"
+          echo "full_image_uri=$uri" >> $GITHUB_ENV
+          echo "::debug::full_image_uri is set to $uri"
+
       - name: Run the full scan
         id: trivy-full
         run: |
@@ -78,7 +88,7 @@ jobs:
             --timeout 40m \
             --skip-dirs "/compliance" \
             --format table \
-            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }} \
+            ${{ env.full_image_uri }} \
           > trivy-report.txt
         continue-on-error: true
 
@@ -92,7 +102,7 @@ jobs:
             --ignore-unfixed \
             --skip-dirs "/compliance" \
             --format table \
-            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}
+            ${{ env.full_image_uri }}
           exit ${{ env.ERROR_RC }}
 
       # If Trivy didn't error, run it again configured for SDL reporting
@@ -110,16 +120,16 @@ jobs:
           trivy image -d \
             --config repo/.github/trivy/sdl-config.yaml \
             --ignore-unfixed \
-            ${{ env.REGISTRY }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG }}
+            ${{ env.full_image_uri }}
           echo "exit-code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Rename SDL report
-        if: ${{ steps.trivy-sdl.outcome == 'success' }}
+        if: ${{ steps.trivy-sdl.outputs.exit-code != env.ERROR_RC }}
         run: mv sdl-scan-results.csv sdl-scan-results-${{ matrix.image-name }}.csv
 
       - name: Upload Trivy report for SDL
-        if: ${{ steps.trivy-sdl.outcome == 'success' }}
+        if: ${{ steps.trivy-sdl.outputs.exit-code != env.ERROR_RC }}
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report-sdl-${{ matrix.image-name }}
@@ -167,6 +177,7 @@ jobs:
     name: Archive results for SDL reporting
     runs-on: innersource.prod.amr.dind
     needs: scan
+    if: always()
     container: cache-registry.caas.intel.com/cache/library/ubuntu:24.04
     defaults:
       run:
