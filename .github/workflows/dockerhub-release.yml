@@ -24,42 +24,95 @@ env:
 
 jobs:
   publish:
+    name: "Publish ${{ matrix.image-name }}"
     runs-on: innersource.prod.amr.dind-xl
     container: cache-registry.caas.intel.com/cache/library/ubuntu:24.04
     defaults:
       run:
         shell: bash
+    env:
+      DOCKERHUB_SUBDIR: ".dockerhub"
+      DOCKERHUB_DESCRIPTIONS_SHORT_FILENAME: "short-description.txt"
+      DOCKERHUB_DESCRIPTIONS_OVERVIEW_FILENAME: "overview.md"
     strategy:
       max-parallel: 3
       fail-fast: false
       matrix:
-        image-name:
-          - erag-embedding
-          - erag-mosec_embedding
-          - erag-ovms_embedding
-          - erag-torchserve_embedding
-          - erag-llm
-          - erag-gmcmanager
-          - erag-gmcrouter
-          - erag-chatqna-conversation-ui
-          - erag-language-detection
-          - erag-otelcol-contrib-journalctl
-          - erag-vllm-cpu
-          - erag-vllm-gaudi
-          - erag-system-fingerprint
-          - erag-dpguard
-          - erag-in-guard
-          - erag-out-guard
-          - erag-enhanced-dataprep
-          - erag-prompt_template
-          - erag-retriever
-          - erag-ingestion
-          - erag-reranking
-          - erag-torchserve_reranking
-          - erag-hierarchical-dataprep-usvc
-          - erag-text-compression
-          - erag-text-extractor
-          - erag-text-splitter
+        include:
+          - image-name: erag-embedding
+            image-dir: "./src/comps/embeddings/impl/microservice"
+
+          - image-name: erag-mosec_embedding
+            image-dir: "./src/comps/embeddings/impl/model-server/mosec/docker"
+
+          - image-name: erag-ovms_embedding
+            image-dir: "./src/comps/embeddings/impl/model-server/ovms/docker"
+
+          - image-name: erag-torchserve_embedding
+            image-dir: "./src/comps/embeddings/impl/model-server/torchserve/docker"
+
+          - image-name: erag-llm
+            image-dir: "./src/comps/llms/impl/microservice"
+
+          - image-name: erag-gmcmanager
+            image-dir: "./deployment/components/gmc/microservices-connector/manager"
+
+          - image-name: erag-gmcrouter
+            image-dir: "./deployment/components/gmc/microservices-connector/router"
+
+          - image-name: erag-chatqna-conversation-ui
+            image-dir: "./src/ui"
+
+          - image-name: erag-language-detection
+            image-dir: "./src/comps/language_detection/impl/microservice"
+
+          - image-name: erag-otelcol-contrib-journalctl
+            image-dir: "./deployment/components/telemetry/helm/charts/logs"
+
+          - image-name: erag-vllm-cpu
+            image-dir: "./src/comps/llms/impl/model_server/vllm/docker/cpu"
+
+          - image-name: erag-vllm-gaudi
+            image-dir: "./src/comps/llms/impl/model_server/vllm/docker/hpu"
+
+          - image-name: erag-system-fingerprint
+            image-dir: "./src/comps/system_fingerprint/impl/microservice"
+
+          - image-name: erag-dpguard
+            image-dir: "./src/comps/guardrails/llm_guard_dataprep_guardrail/impl/microservice"
+
+          - image-name: erag-in-guard
+            image-dir: "./src/comps/guardrails/llm_guard_input_guardrail/impl/microservice"
+
+          - image-name: erag-out-guard
+            image-dir: "./src/comps/guardrails/llm_guard_output_guardrail/impl/microservice"
+
+          - image-name: erag-enhanced-dataprep
+            image-dir: "./src/edp"
+
+          - image-name: erag-prompt_template
+            image-dir: "./src/comps/prompt_template/impl/microservice"
+
+          - image-name: erag-retriever
+            image-dir: "./src/comps/retrievers/impl/microservice"
+
+          - image-name: erag-ingestion
+            image-dir: "./src/comps/ingestion/impl/microservice"
+
+          - image-name: erag-reranking
+            image-dir: "./src/comps/reranks/impl/microservice"
+
+          - image-name: erag-torchserve_reranking
+            image-dir: "./src/comps/reranks/impl/model_server/torchserve/docker"
+
+          - image-name: erag-text-compression
+            image-dir: "./src/comps/text_compression/impl/microservice"
+
+          - image-name: erag-text-extractor
+            image-dir: "./src/comps/text_extractor/impl/microservice"
+
+          - image-name: erag-text-splitter
+            image-dir: "./src/comps/text_splitter/impl/microservice"
 
     steps:
       - name: Validate input
@@ -69,7 +122,52 @@ jobs:
             exit 1
           fi
 
-      - name: Install dependencies
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate description paths
+        id: description-paths
+        run: |
+          DESCRIPTION_SHORT_PATH="${{ matrix.image-dir }}/${{ env.DOCKERHUB_SUBDIR }}/${{ env.DOCKERHUB_DESCRIPTIONS_SHORT_FILENAME }}"
+          DESCRIPTION_OVERVIEW_PATH="${{ matrix.image-dir }}/${{ env.DOCKERHUB_SUBDIR }}/${{ env.DOCKERHUB_DESCRIPTIONS_OVERVIEW_FILENAME }}"
+          echo "DESCRIPTION_SHORT_PATH=$DESCRIPTION_SHORT_PATH" >> $GITHUB_OUTPUT
+          echo "DESCRIPTION_OVERVIEW_PATH=$DESCRIPTION_OVERVIEW_PATH" >> $GITHUB_OUTPUT
+          echo "::debug::Short description path: ${DESCRIPTION_SHORT_PATH}"
+          echo "::debug::Description overview path: ${DESCRIPTION_OVERVIEW_PATH}"
+
+      - name: Verify short description file existence
+        run: |
+          if [ ! -f "${{ steps.description-paths.outputs.DESCRIPTION_SHORT_PATH }}" ]; then
+            echo "::error::File ${{ steps.description-paths.outputs.DESCRIPTION_SHORT_PATH }} does not exist"
+            exit 1
+          fi
+
+      - name: Verify overview file existence
+        run: |
+          if [ ! -f "${{ steps.description-paths.outputs.DESCRIPTION_OVERVIEW_PATH }}" ]; then
+            echo "::error::File ${{ steps.description-paths.outputs.DESCRIPTION_OVERVIEW_PATH }} does not exist"
+            exit 1
+          fi
+
+      - name: Load short description of the image
+        id: load-short-description
+        run: |
+          RAW_CONTENT=$(cat "${{ steps.description-paths.outputs.DESCRIPTION_SHORT_PATH }}")
+          echo "::debug::Read description: ${RAW_CONTENT}"
+
+          if [ ${#RAW_CONTENT} -gt 100 ]; then
+            echo "::error::Short description length exceeds 100 characters."
+            exit 1
+          fi
+
+          if [[ "${RAW_CONTENT}" =~ [$'\n'$'\r'] ]]; then
+            echo "::error::Short description contains newline or carriage return characters."
+            exit 1
+          fi
+
+          echo "CONTENT=$RAW_CONTENT" >> $GITHUB_OUTPUT
+
+      - name: Download components
         run: |
           apt update &&
           apt install -y curl skopeo=1.13.3+ds1-2ubuntu0.24.04.2
@@ -98,3 +196,12 @@ jobs:
           --dest-creds='${{ vars.RELEASE_IMG_DOCKERHUB_USER }}':'${{ secrets.RELEASE_IMG_DOCKERHUB_PASS }}' \
           docker://${{ env.REGISTRY_SOURCE }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG_SOURCE }} \
           docker://${{ env.REGISTRY_DESTINATION }}/${{ matrix.image-name }}:latest
+
+      - name: Annotate image
+        uses: peter-evans/dockerhub-description@432a30c9e07499fd01da9f8a49f0faf9e0ca5b77
+        with:
+          username: ${{ vars.RELEASE_IMG_DOCKERHUB_USER }}
+          password: ${{ secrets.RELEASE_IMG_DOCKERHUB_PASS }}
+          repository: opea/${{ matrix.image-name }}
+          short-description: "${{ steps.load-short-description.outputs.CONTENT }}"
+          readme-filepath: ${{ steps.description-paths.outputs.DESCRIPTION_OVERVIEW_PATH }}
