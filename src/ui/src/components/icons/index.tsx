@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import AdminPanelIcon from "@/components/icons/AdminPanelIcon/AdminPanelIcon";
+import BucketSynchronizationIcon from "@/components/icons/BucketSynchronizationIcon/BucketSynchronizationIcon";
 import ChatBotIcon from "@/components/icons/ChatBotIcon/ChatBotIcon";
 import ChatIcon from "@/components/icons/ChatIcon/ChatIcon";
 import CloseIcon from "@/components/icons/CloseIcon/CloseIcon";
@@ -31,6 +32,7 @@ import UploadIcon from "@/components/icons/UploadIcon/UploadIcon";
 
 export const icons = {
   "admin-panel": AdminPanelIcon,
+  "bucket-synchronization": BucketSynchronizationIcon,
   "chat-bot": ChatBotIcon,
   chat: ChatIcon,
   close: CloseIcon,
