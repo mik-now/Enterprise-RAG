@@ -6,6 +6,7 @@ import ChatBotIcon from "@/components/icons/ChatBotIcon/ChatBotIcon";
 import ChatIcon from "@/components/icons/ChatIcon/ChatIcon";
 import CloseIcon from "@/components/icons/CloseIcon/CloseIcon";
 import CloseNotificationIcon from "@/components/icons/CloseNotificationIcon/CloseNotificationIcon";
+import ConfigurableServiceIcon from "@/components/icons/ConfigurableServiceIcon/ConfigurableServiceIcon";
 import CopyErrorIcon from "@/components/icons/CopyErrorIcon/CopyErrorIcon";
 import CopyIcon from "@/components/icons/CopyIcon/CopyIcon";
 import CopySuccessIcon from "@/components/icons/CopySuccessIcon/CopySuccessIcon";
@@ -34,6 +35,7 @@ export const icons = {
   chat: ChatIcon,
   close: CloseIcon,
   "close-notification": CloseNotificationIcon,
+  "configurable-service": ConfigurableServiceIcon,
   "copy-error": CopyErrorIcon,
   copy: CopyIcon,
   "copy-success": CopySuccessIcon,
