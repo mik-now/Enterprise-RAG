@@ -3,7 +3,7 @@ name: "SDL Scan"
 inputs:
   PR-number:
     description: 'Pull request number'
-    required: true
+    required: false
   Repository-name:
     description: 'Repository name'
     required: true
@@ -31,15 +31,15 @@ runs:
           FMSPAMVLT101/LOBUSER_prapp/AAM-DV-43211-ENTERPRISEAIRA/Operating System-UnmanagedAccounts-AllOSs-sys_cicd/password|CONJUR_SDL_PASSWORD
 
     - name: Fetch PR code to be scanned
-      if: ${{ github.event_name != 'release' }}
+      if: ${{ github.event_name == 'pull_request' }}
       uses: actions/checkout@v4
       with:
         repository: ${{ inputs.Repository-name }}
         ref: refs/pull/${{ inputs.PR-number }}/head
         path: repo
 
-    - name: Fetch release code to be scanned
-      if: ${{ github.event_name == 'release' }}
+    - name: Fetch code from main to be scanned
+      if: ${{ github.event_name != 'pull_request' }}
       uses: actions/checkout@v4
       with:
         path: repo

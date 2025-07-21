@@ -7,7 +7,7 @@ on:
         description: 'Pull request number'
         required: true
 
-  pull_request:
+  push:
     branches: [ main ]
 
 concurrency:
@@ -38,8 +38,8 @@ jobs:
         cp .github/BuildConfigProtex.json .github/BuildConfig.json
       shell: bash
 
-    - name: SDL scan
+    - name: SDL scan for Protex
       uses: ./.github/actions/sdl-scan
       with:
         Repository-name: ${{ github.repository }}
-        PR-number: ${{ env.PR-number }}
+        PR-number: ${{ env.PR-number || 'not-a-pr' }}
