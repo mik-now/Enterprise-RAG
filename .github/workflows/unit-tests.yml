@@ -125,6 +125,12 @@ jobs:
         with:
           test-name: language_detection_unit_tests
 
+      - name: Chat History unit tests
+        if: success() || failure()
+        uses: ./.github/actions/unit-tests
+        with:
+          test-name: chat_history_unit_tests
+
       - name: EDP unit tests
         if: success() || failure()
         uses: ./.github/actions/unit-tests
