@@ -152,69 +152,69 @@
   no_log: "{{ secure_logs }}"
   tags: install
 
-- name: Get all nodes
-  kubernetes.core.k8s_info:
-    kind: Node
-  register: habana_nodes
-  tags: install
+# - name: Get all nodes
+#   kubernetes.core.k8s_info:
+#     kind: Node
+#   register: habana_nodes
+#   tags: install
 
-- name: Initialize Gaudi node list
-  set_fact:
-    gaudi_nodes: []
-  tags: install
+# - name: Initialize Gaudi node list
+#   set_fact:
+#     gaudi_nodes: []
+#   tags: install
 
-- name: Identify Gaudi nodes manually
-  set_fact:
-    gaudi_nodes: "{{ gaudi_nodes + [item] }}"
-  loop: "{{ habana_nodes.resources }}"
-  when: item.metadata.labels is defined and
-        item.metadata.labels['habana.ai/device.family'] is defined and
-        item.metadata.labels['habana.ai/device.family'] == 'gaudi'
-  no_log: "{{ secure_logs }}"
-  tags: install
+# - name: Identify Gaudi nodes manually
+#   set_fact:
+#     gaudi_nodes: "{{ gaudi_nodes + [item] }}"
+#   loop: "{{ habana_nodes.resources }}"
+#   when: item.metadata.labels is defined and
+#         item.metadata.labels['habana.ai/device.family'] is defined and
+#         item.metadata.labels['habana.ai/device.family'] == 'gaudi'
+#   no_log: "{{ secure_logs }}"
+#   tags: install
 
-- name: Print number of Gaudi nodes
-  debug:
-    msg: "Number of Gaudi nodes: {{ gaudi_nodes | length }}"
-  tags: install
+# - name: Print number of Gaudi nodes
+#   debug:
+#     msg: "Number of Gaudi nodes: {{ gaudi_nodes | length }}"
+#   tags: install
 
-- name: Count total Gaudi cards manually
-  set_fact:
-    total_gaudi_cards: "{{ total_gaudi_cards | default(0) + (item.status.capacity['habana.ai/gaudi'] | int) }}"
-  loop: "{{ gaudi_nodes }}"
-  when: item.status.capacity is defined and item.status.capacity['habana.ai/gaudi'] is defined
-  no_log: "{{ secure_logs }}"
-  tags: install
+# - name: Count total Gaudi cards manually
+#   set_fact:
+#     total_gaudi_cards: "{{ total_gaudi_cards | default(0) + (item.status.capacity['habana.ai/gaudi'] | int) }}"
+#   loop: "{{ gaudi_nodes }}"
+#   when: item.status.capacity is defined and item.status.capacity['habana.ai/gaudi'] is defined
+#   no_log: "{{ secure_logs }}"
+#   tags: install
 
-- name: Print total number of Gaudi cards
-  debug:
-    msg: "Total number of Gaudi cards: {{ total_gaudi_cards }}"
-  tags: install
+# - name: Print total number of Gaudi cards
+#   debug:
+#     msg: "Total number of Gaudi cards: {{ total_gaudi_cards }}"
+#   tags: install
 
-- name: Find nodes with incorrect Habana Gaudi capacity
-  set_fact:
-    invalid_nodes: >-
-      {{
-        gaudi_nodes
-        | selectattr("status.capacity['habana.ai/gaudi']", "defined")
-        | selectattr("status.capacity['habana.ai/gaudi']", "ne", "8")
-        | map(attribute="metadata.name")
-        | list
-      }}
-  tags: install
+# - name: Find nodes with incorrect Habana Gaudi capacity
+#   set_fact:
+#     invalid_nodes: >-
+#       {{
+#         gaudi_nodes
+#         | selectattr("status.capacity['habana.ai/gaudi']", "defined")
+#         | selectattr("status.capacity['habana.ai/gaudi']", "ne", "8")
+#         | map(attribute="metadata.name")
+#         | list
+#       }}
+#   tags: install
 
-- name: Fail if any Gaudi node has incorrect capacity
-  fail:
-    msg: >-
-      The following nodes do not have the correct Habana Gaudi capacity:
-      {% for node in gaudi_nodes %}
-        {% if node.metadata.name in invalid_nodes %}
-          - {{ node.metadata.name }} (actual: {{ node.status.capacity['habana.ai/gaudi'] }}, expected: 8)
-        {% endif %}
-      {% endfor %}
-      {% set message = gaudi_nodes | selectattr("metadata.name", "in", invalid_nodes") %}
-  when: invalid_nodes | length > 0
-  tags: install
+# - name: Fail if any Gaudi node has incorrect capacity
+#   fail:
+#     msg: >-
+#       The following nodes do not have the correct Habana Gaudi capacity:
+#       {% for node in gaudi_nodes %}
+#         {% if node.metadata.name in invalid_nodes %}
+#           - {{ node.metadata.name }} (actual: {{ node.status.capacity['habana.ai/gaudi'] }}, expected: 8)
+#         {% endif %}
+#       {% endfor %}
+#       {% set message = gaudi_nodes | selectattr("metadata.name", "in", invalid_nodes") %}
+#   when: invalid_nodes | length > 0
+#   tags: install
 
 - name: Uninstall Habana AI Operator Helm release
   kubernetes.core.helm:
