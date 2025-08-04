@@ -170,7 +170,7 @@ jobs:
       - name: Download components
         run: |
           apt update &&
-          apt install -y curl skopeo=1.13.3+ds1-2ubuntu0.24.04.2
+          apt install -y curl skopeo=1.13.3+ds1-2ubuntu0.24.04.3
 
       - name: Download certificates
         run: |
