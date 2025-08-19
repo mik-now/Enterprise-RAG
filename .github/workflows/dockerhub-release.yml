@@ -60,6 +60,9 @@ jobs:
           - image-name: erag-gmcrouter
             image-dir: "./deployment/components/gmc/microservices-connector/router"
 
+          - image-name: erag-hierarchical_dataprep
+            image-dir: "./src/comps/hierarchical_dataprep/impl/microservice"
+
           - image-name: erag-chatqna-conversation-ui
             image-dir: "./src/ui"
 
@@ -68,9 +71,6 @@ jobs:
 
           - image-name: erag-otelcol-contrib-journalctl
             image-dir: "./deployment/components/telemetry/helm/charts/logs"
-
-          - image-name: erag-vllm-cpu
-            image-dir: "./src/comps/llms/impl/model_server/vllm/docker/cpu"
 
           - image-name: erag-vllm-gaudi
             image-dir: "./src/comps/llms/impl/model_server/vllm/docker/hpu"
@@ -113,6 +113,9 @@ jobs:
 
           - image-name: erag-text-splitter
             image-dir: "./src/comps/text_splitter/impl/microservice"
+
+          - image-name: erag-chat-history
+            image-dir: "./src/comps/chat_history/impl/microservice"
 
     steps:
       - name: Validate input
