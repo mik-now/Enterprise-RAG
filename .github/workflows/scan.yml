@@ -1,4 +1,4 @@
-name: "Compliance Scans"
+name: "SDL"
 
 on:
   pull_request:
@@ -21,14 +21,13 @@ env:
   PR-number: ${{ github.event_name == 'release' && '' || github.event.number }}
 
 jobs:
-  SDLScans:
-    if: ${{ github.repository == 'intel-innersource/applications.ai.enterprise-rag.enterprise-ai-solution' }}
+  idf:
+    name: IDF Pack
     runs-on: [innersource.prod.amr.dind]
     defaults:
       run:
         shell: bash
     container: cache-registry.caas.intel.com/cache/library/python:3.11
-    name: SDL required
     environment: default
     permissions:
       id-token: write
@@ -42,3 +41,15 @@ jobs:
       with:
         Repository-name: ${{ github.repository }}
         PR-number: ${{ env.PR-number }}
+
+  bandit:
+    name: Bandit
+    runs-on: [innersource.prod.amr.dind]
+    container: cache-registry.caas.intel.com/cache/library/python:slim
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Bandit
+        # At that time latest release were using old upload-artifact v3 which was blocked by GH
+        uses: intel-innersource/frameworks.actions.bandit@e52968db652a1f1ed32dad6085a5b9350147af28

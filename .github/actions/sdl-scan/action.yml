@@ -146,24 +146,3 @@ runs:
         path: ${{ env.GITHUB_WORKSPACE }}/scans_results
         if-no-files-found: error
         retention-days: 60
-
-    - name: Clean up before bandit scan
-      if: always()
-      run: |
-        GLOBIGNORE=.git*:repo:*zip
-        rm -rf *
-        unset GLOBIGNORE
-      shell: bash
-
-    - name: Bandit Scan
-      if: always() && github.workflow != 'Protex Scan'
-      run: |
-        pip install bandit==1.8.0
-        bandit repo -c repo/.github/BanditConfig.yaml -r -f html -o bandit-report.html
-      shell: bash
-
-    - uses: actions/upload-artifact@v4
-      if: always() && github.workflow != 'Protex Scan'
-      with:
-        name: CT161_bandit-results.html
-        path: bandit-report.html
