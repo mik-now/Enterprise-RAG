@@ -3,12 +3,18 @@ name: Images security scans
 on:
   workflow_dispatch:
     inputs:
+      REGISTRY:
+        description: Select image registry
+        required: true
+        type: choice
+        options:
+          - prod
+          - pre
       TAG:
         description: Tag of images
         required: true
 
 env:
-  REGISTRY: ger-is-registry.caas.intel.com/intel-ai
   IMAGE_NAME_PREFIX: "erag-"
 
 jobs:
@@ -50,8 +56,8 @@ jobs:
           - text-splitter
 
     env:
-      TRIVY_USERNAME: ${{ vars.RELEASE_IMG_HARBOR_PROD_USER }}
-      TRIVY_PASSWORD: ${{ secrets.RELEASE_IMG_HARBOR_PROD_PASS }}
+      HARBOR_PROD_URL: "ger-is-registry.caas.intel.com/intel-ai"
+      HARBOR_PRE_URL: "ger-is-registry-pre.caas.intel.com/intel-ai-for-enterprise-rag/erag"
       TRIVY_DISABLE_VEX_NOTICE: true
       ERROR_RC: 1   # Error means test did not even finish
       FAIL_RC: 2    # Fail means scan was done correctly, but found issues
@@ -67,9 +73,27 @@ jobs:
           openssl x509 -inform der -in /tmp/IntelRootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelRootCA-base64.crt  &&
           update-ca-certificates
 
+      - name: Set Trivy registry url
+        run: |
+          if [[ "${{ github.event.inputs.REGISTRY }}" == "prod" ]]; then
+            echo "REGISTRY_URL=${{ env.HARBOR_PROD_URL }}" >> $GITHUB_ENV
+          else
+            echo "REGISTRY_URL=${{ env.HARBOR_PRE_URL }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set Trivy credentials
+        run: |
+          if [[ "${{ github.event.inputs.REGISTRY }}" == "prod" ]]; then
+            echo "TRIVY_USERNAME=${{ vars.HARBOR_PROD_USER }}" >> $GITHUB_ENV
+            echo "TRIVY_PASSWORD=${{ secrets.HARBOR_PROD_PASS }}" >> $GITHUB_ENV
+          else
+            echo "TRIVY_USERNAME=${{ vars.HARBOR_PRE_USER }}" >> $GITHUB_ENV
+            echo "TRIVY_PASSWORD=${{ secrets.HARBOR_PRE_PASS }}" >> $GITHUB_ENV
+          fi
+
       - name: Create full image URI
         run: |
-          uri="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}${{ matrix.image-name }}:${{ github.event.inputs.TAG }}"
+          uri="${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME_PREFIX }}${{ matrix.image-name }}:${{ github.event.inputs.TAG }}"
           echo "full_image_uri=$uri" >> $GITHUB_ENV
           echo "::debug::full_image_uri is set to $uri"
 

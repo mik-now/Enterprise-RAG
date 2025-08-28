@@ -186,7 +186,7 @@ jobs:
       - name: Run publish
         run: |
           skopeo copy \
-          --src-creds='${{ vars.RELEASE_IMG_HARBOR_PROD_USER }}':'${{ secrets.RELEASE_IMG_HARBOR_PROD_PASS }}' \
+          --src-creds=${{ vars.HARBOR_PROD_USER }}:${{ secrets.HARBOR_PROD_PASS }} \
           --dest-creds='${{ vars.RELEASE_IMG_DOCKERHUB_USER }}':'${{ secrets.RELEASE_IMG_DOCKERHUB_PASS }}' \
           docker://${{ env.REGISTRY_SOURCE }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG_SOURCE }} \
           docker://${{ env.REGISTRY_DESTINATION }}/${{ matrix.image-name }}:${{ github.event.inputs.TAG_DESTINATION }}
