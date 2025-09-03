@@ -27,4 +27,4 @@ Describe the tests that you ran to verify your changes.
 
 I confirm that I followed best practices described in [Intel Secure Coding Guidelines](https://readthedocs.intel.com/SecureCodingStandards/latest/). Includes C, C++, python and language agnostic code: 
 - [ ] yes
-- [ ] no
+
