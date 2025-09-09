@@ -64,7 +64,7 @@ jobs:
             image-dir: "./src/comps/hierarchical_dataprep/impl/microservice"
 
           - image-name: erag-chatqna-conversation-ui
-            image-dir: "./src/ui"
+            image-dir: "./src/ui/apps/chatqna"
 
           - image-name: erag-language-detection
             image-dir: "./src/comps/language_detection/impl/microservice"
