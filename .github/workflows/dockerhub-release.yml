@@ -35,7 +35,6 @@ jobs:
       DOCKERHUB_DESCRIPTIONS_SHORT_FILENAME: "short-description.txt"
       DOCKERHUB_DESCRIPTIONS_OVERVIEW_FILENAME: "overview.md"
     strategy:
-      max-parallel: 3
       fail-fast: false
       matrix:
         include:
@@ -55,10 +54,10 @@ jobs:
             image-dir: "./src/comps/llms/impl/microservice"
 
           - image-name: erag-gmcmanager
-            image-dir: "./deployment/components/gmc/microservices-connector/manager"
+            image-dir: "./src/gmc/manager"
 
           - image-name: erag-gmcrouter
-            image-dir: "./deployment/components/gmc/microservices-connector/router"
+            image-dir: "./src/gmc/router"
 
           - image-name: erag-hierarchical_dataprep
             image-dir: "./src/comps/hierarchical_dataprep/impl/microservice"
