@@ -42,13 +42,13 @@ jobs:
             image-dir: "./src/comps/embeddings/impl/microservice"
 
           - image-name: erag-mosec_embedding
-            image-dir: "./src/comps/embeddings/impl/model-server/mosec/docker"
+            image-dir: "./src/comps/embeddings/impl/model_server/mosec/docker"
 
           - image-name: erag-ovms_embedding
-            image-dir: "./src/comps/embeddings/impl/model-server/ovms/docker"
+            image-dir: "./src/comps/embeddings/impl/model_server/ovms/docker"
 
           - image-name: erag-torchserve_embedding
-            image-dir: "./src/comps/embeddings/impl/model-server/torchserve/docker"
+            image-dir: "./src/comps/embeddings/impl/model_server/torchserve/docker"
 
           - image-name: erag-llm
             image-dir: "./src/comps/llms/impl/microservice"
