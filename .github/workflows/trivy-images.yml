@@ -14,8 +14,15 @@ on:
         description: Tag of images
         required: true
 
+  schedule:
+    - cron: '0 0 * * 5' # Every Friday at 00:00 UTC
+
 env:
   IMAGE_NAME_PREFIX: "erag-"
+  # Set default values for REGISTRY and TAG for weekly scans
+  # On manual scans, values from inputs are used
+  REGISTRY: ${{ github.event.inputs.REGISTRY || 'pre' }}
+  TAG: ${{ github.event.inputs.TAG || 'latest' }}
 
 jobs:
   scan:
@@ -75,7 +82,7 @@ jobs:
 
       - name: Set Trivy registry url
         run: |
-          if [[ "${{ github.event.inputs.REGISTRY }}" == "prod" ]]; then
+          if [[ "${{ env.REGISTRY }}" == "prod" ]]; then
             echo "REGISTRY_URL=${{ env.HARBOR_PROD_URL }}" >> $GITHUB_ENV
           else
             echo "REGISTRY_URL=${{ env.HARBOR_PRE_URL }}" >> $GITHUB_ENV
@@ -83,7 +90,7 @@ jobs:
 
       - name: Set Trivy credentials
         run: |
-          if [[ "${{ github.event.inputs.REGISTRY }}" == "prod" ]]; then
+          if [[ "${{ env.REGISTRY }}" == "prod" ]]; then
             echo "TRIVY_USERNAME=${{ vars.HARBOR_PROD_USER }}" >> $GITHUB_ENV
             echo "TRIVY_PASSWORD=${{ secrets.HARBOR_PROD_PASS }}" >> $GITHUB_ENV
           else
@@ -93,7 +100,7 @@ jobs:
 
       - name: Create full image URI
         run: |
-          uri="${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME_PREFIX }}${{ matrix.image-name }}:${{ github.event.inputs.TAG }}"
+          uri="${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME_PREFIX }}${{ matrix.image-name }}:${{ env.TAG }}"
           echo "full_image_uri=$uri" >> $GITHUB_ENV
           echo "::debug::full_image_uri is set to $uri"
 
