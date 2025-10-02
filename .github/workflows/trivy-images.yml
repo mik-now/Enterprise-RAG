@@ -1,5 +1,5 @@
 name: Images security scans
-
+run-name: Sec scan reg '${{ github.event.inputs.REGISTRY || 'pre' }}' tag '${{ github.event.inputs.TAG || 'latest' }}'
 on:
   workflow_dispatch:
     inputs:
@@ -15,7 +15,7 @@ on:
         required: true
 
   schedule:
-    - cron: '0 0 * * 4' # Every Thursday at 00:00 UTC
+    - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
 
 jobs:
   scan:

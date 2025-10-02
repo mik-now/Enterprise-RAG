@@ -8,7 +8,7 @@ parser.add_argument("trivy_json", help="File with postprocessed Trivy JSON resul
 args = parser.parse_args()
 
 # choices from Trivy: lang-pkgs, os-pkgs
-IMPORTANT_VULN_CLASSES = ['lang-pkgs']
+IMPORTANT_VULN_CLASSES = ['lang-pkgs', 'os-pkgs']
 IMPORTANT_VULN_SEVERITIES = [Severity.CRITICAL, Severity.HIGH]
 
 vulns = []

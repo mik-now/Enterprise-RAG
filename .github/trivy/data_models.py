@@ -6,6 +6,7 @@ class Severity(IntEnum):
     HIGH = 3
     MEDIUM = 2
     LOW = 1
+    UNKNOWN = 0
 
 
 class AffectedDependency:
