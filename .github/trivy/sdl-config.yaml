@@ -29,9 +29,6 @@ scan:
   scanners:
     - vuln
 
-pkg:
-  types: [library]
-
 severity:
   - HIGH
   - CRITICAL

@@ -66,22 +66,26 @@ jobs:
       FAIL_RC: 2    # Fail means scan was done correctly, but found issues
 
     steps:
-      - name: Download Trivy DB
-        run: trivy image --download-db-only
+      - name: Set registry url
+        run: |
+          if [[ "${{ env.REGISTRY }}" == "prod" ]]; then
+            echo "REGISTRY_URL=${{ env.HARBOR_PROD_URL }}" >> $GITHUB_ENV
+          else
+            echo "REGISTRY_URL=${{ env.HARBOR_PRE_URL }}" >> $GITHUB_ENV
+          fi
 
-      - name: Create artifacts dir
-        run: mkdir -p results
+      - name: Set credentials
+        run: |
+          if [[ "${{ env.REGISTRY }}" == "prod" ]]; then
+            echo "REG_USERNAME=${{ vars.HARBOR_PROD_USER }}" >> $GITHUB_ENV
+            echo "REG_PASSWORD=${{ secrets.HARBOR_PROD_PASS }}" >> $GITHUB_ENV
+          else
+            echo "REG_USERNAME=${{ vars.HARBOR_PRE_USER }}" >> $GITHUB_ENV
+            echo "REG_PASSWORD=${{ secrets.HARBOR_PRE_PASS }}" >> $GITHUB_ENV
+          fi
 
       - name: Install minor dependencies
         run: apk add curl openssl
-
-      - name: Install Python
-        run: |
-          apk update
-          apk add --no-cache python3~3.12
-          ln -sf /usr/bin/python3 /usr/bin/python
-          apk add --no-cache py3-pip
-          python --version
 
       - name: Download certificates
         run: |
@@ -91,29 +95,53 @@ jobs:
           openssl x509 -inform der -in /tmp/IntelRootCA.crt -outform pem -out /usr/local/share/ca-certificates/IntelRootCA-base64.crt  &&
           update-ca-certificates
 
-      - name: Set Trivy registry url
-        run: |
-          if [[ "${{ env.REGISTRY }}" == "prod" ]]; then
-            echo "REGISTRY_URL=${{ env.HARBOR_PROD_URL }}" >> $GITHUB_ENV
-          else
-            echo "REGISTRY_URL=${{ env.HARBOR_PRE_URL }}" >> $GITHUB_ENV
-          fi
+      - name: Download Trivy DB
+        run: trivy image --download-db-only
 
-      - name: Set Trivy credentials
+      - name: Create artifacts dir
+        run: mkdir -p results
+
+      - name: Install Python
         run: |
-          if [[ "${{ env.REGISTRY }}" == "prod" ]]; then
-            echo "TRIVY_USERNAME=${{ vars.HARBOR_PROD_USER }}" >> $GITHUB_ENV
-            echo "TRIVY_PASSWORD=${{ secrets.HARBOR_PROD_PASS }}" >> $GITHUB_ENV
-          else
-            echo "TRIVY_USERNAME=${{ vars.HARBOR_PRE_USER }}" >> $GITHUB_ENV
-            echo "TRIVY_PASSWORD=${{ secrets.HARBOR_PRE_PASS }}" >> $GITHUB_ENV
-          fi
+          apk update
+          apk add --no-cache python3~3.12
+          ln -sf /usr/bin/python3 /usr/bin/python
+          apk add --no-cache py3-pip
+          python --version
+
+      - name: Install and configure skopeo
+        run: |
+          apk add docker-cli skopeo
+          echo '${{ env.REG_PASSWORD }}' | skopeo login --username '${{ env.REG_USERNAME }}' --password-stdin ${{ env.REGISTRY_URL }}
 
       - name: Create full image URI
         run: |
           uri="${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME_PREFIX }}${{ matrix.image-name }}:${{ env.TAG }}"
           echo "full_image_uri=$uri" >> $GITHUB_ENV
           echo "::debug::full_image_uri is set to $uri"
+
+      # CaaS registry often hangs, therefore more robust approach required.
+      - name: Pull the image
+        id: skopeo-pull
+        run: |
+          MAX_RETRIES=5
+          TIMEOUT=600  # 10 minutes in seconds
+          COUNT=0
+          SUCCESS=0
+
+          while [ $COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((COUNT+1)) / $MAX_RETRIES..."
+            timeout $TIMEOUT skopeo copy docker://${{ env.full_image_uri }} oci:/image && SUCCESS=1 && break
+            COUNT=$((COUNT+1))
+            echo "Attempt $COUNT failed. Retrying..."
+          done
+
+          if [ $SUCCESS -ne 1 ]; then
+            echo "All $MAX_RETRIES attempts failed. Exiting with error."
+            exit 1
+          else
+            echo "Skopeo copy succeeded."
+          fi
 
       - name: Run the full scan
         id: trivy-full
@@ -125,7 +153,7 @@ jobs:
           trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
 
           trivy image -q \
-            --pkg-types library \
+            --input /image \
             --scanners vuln \
             --exit-code ${{ env.FAIL_RC }} \
             --timeout 40m \
@@ -139,7 +167,7 @@ jobs:
         run: |
           echo "::error::Trivy scan had errors when running"
           trivy image -d \
-            --pkg-types library \
+            --input /image \
             --scanners vuln \
             --timeout 40m \
             --ignore-unfixed \
@@ -162,6 +190,7 @@ jobs:
         run: |
           trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
           trivy image \
+            --input /image \
             --scanners vuln \
             --timeout 40m \
             --skip-dirs "/compliance" \
@@ -176,6 +205,7 @@ jobs:
         run: |
           trap 'echo "exit-code=$?" >> "$GITHUB_OUTPUT"' EXIT
           trivy image \
+            --input /image \
             --config repo/.github/trivy/sdl-config.yaml \
             --ignore-unfixed \
             ${{ env.full_image_uri }}
