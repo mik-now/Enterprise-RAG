@@ -245,6 +245,7 @@ jobs:
           python repo/.github/trivy/summary_builder_one_image.py results/trivy-postprocessed.json >> $GITHUB_STEP_SUMMARY
 
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-reports-${{ matrix.image-name }}

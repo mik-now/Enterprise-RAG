@@ -36,7 +36,7 @@ for r in data["Results"]:
             fix,
             vuln["VulnerabilityID"],
             vuln["PrimaryURL"],
-            vuln["Title"]
+            vuln.get("Title", f"Title not found. Description: {vuln.get('Description', 'Also not found.')}")
         )
         deps.append(dep)
 
