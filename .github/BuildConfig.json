@@ -17,8 +17,5 @@
         "ServerURL": "https://bdba001.icloud.intel.com",
         "ServerGroup": "57"
     },
-    "TrivyConfig": {
-        "target": "."
-    },
     "AVScan": {}
 }
