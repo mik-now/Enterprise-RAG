@@ -52,6 +52,12 @@ spec:
               value: {{ .Values.mssql.config.accept_eula | quote }}
             - name: MSSQL_PID
               value: {{ .Values.mssql.config.mssql_pid | quote }}
+            - name: MSSQL_USER
+              value: {{ .Values.vector_database_username | quote }}
+            - name: MSSQL_PASSWORD
+              value: {{ .Values.vector_database_password | quote }}
+            - name: MSSQL_DB
+              value: {{ .Values.vector_database_name | quote }}
           image: "{{ .Values.mssql.image.repository }}:{{ .Values.mssql.image.tag }}"
           ports:
             - name: mssql
