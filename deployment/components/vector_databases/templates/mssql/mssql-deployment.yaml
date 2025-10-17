@@ -52,12 +52,9 @@ spec:
               value: {{ .Values.mssql.config.accept_eula | quote }}
             - name: MSSQL_PID
               value: {{ .Values.mssql.config.mssql_pid | quote }}
-            - name: MSSQL_USER
-              value: {{ .Values.vector_database_username | quote }}
-            - name: MSSQL_PASSWORD
-              value: {{ .Values.vector_database_password | quote }}
-            - name: MSSQL_DB
-              value: {{ .Values.vector_database_name | quote }}
+          envFrom:
+            - secretRef:
+                name: mssql-secret
           image: "{{ .Values.mssql.image.repository }}:{{ .Values.mssql.image.tag }}"
           ports:
             - name: mssql
@@ -82,12 +79,13 @@ spec:
             exec:
               command:
                 - /opt/mssql-tools18/bin/sqlcmd
+                - -C
                 - -S
                 - localhost
                 - -U
                 - sa
                 - -P
-                - $(MSSQL_SA_PASSWORD)
+                - "$MSSQL_SA_PASSWORD"
                 - -Q
                 - "SELECT 1"
             initialDelaySeconds: 30
