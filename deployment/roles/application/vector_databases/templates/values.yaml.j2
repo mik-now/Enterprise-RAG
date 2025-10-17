@@ -13,6 +13,20 @@ pgvector:
 
 {% endif %}
 
+{% if vector_databases.vector_store == "mssql" %}
+vector_database_password: {{ MSSQL_PASSWORD }}
+vector_database_username: {{ vector_database_connection_username | default("edp") }}
+vector_database_name: {{ vector_database_name | default("vdb") }}
+
+mssql:
+  enabled: true
+  config:
+    accept_eula: "Y"
+    mssql_pid: "Developer"
+
+{% endif %}
+
+
 {% if vector_databases.vector_store == "redis" %}
 vector_database_password: {{ REDIS_PASSWORD }}
 

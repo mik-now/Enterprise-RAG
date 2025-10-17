@@ -27,6 +27,25 @@ pgvector:
       cpu: 16
       memory: 16Gi
 
+mssql:
+  enabled: false
+  image:
+    repository: "mcr.microsoft.com/mssql/server"
+    tag: "2025-RC1-ubuntu-24.04"
+  config:
+    accept_eula: "N"
+    mssql_pid: "Developer"
+  persistence:
+    enabled: true
+    size: "10Gi"
+  resources:
+    requests:
+      cpu: 2
+      memory: 4Gi
+    limits:
+      cpu: 16
+      memory: 16Gi
+
 redis-cluster:
   image:
     repository: bitnamilegacy/redis-cluster

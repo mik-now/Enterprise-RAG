@@ -29,7 +29,7 @@ spec:
       {{- end }}
       containers:
         - name: pgvector
-          {{- if .Values.podSecurityContext }}
+          {{- if .Values.securityContextWithTemp }}
           securityContext:
             {{- toYaml .Values.securityContextWithTemp | nindent 12 }}
           {{- end }}
