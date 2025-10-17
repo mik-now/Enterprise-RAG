@@ -14,7 +14,12 @@ updates:
 
   # Enable version updates for JavaScript
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/src/ui"
     open-pull-requests-limit: 0
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "helm"
+    directory: "/deployment"
     schedule:
       interval: "daily"
