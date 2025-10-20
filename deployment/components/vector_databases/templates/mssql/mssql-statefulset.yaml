@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mssql
   namespace: {{ .Release.Namespace }}
@@ -11,6 +11,7 @@ metadata:
     app.kubernetes.io/name: mssql
     app.kubernetes.io/instance: mssql
 spec:
+  serviceName: mssql
   replicas: 1
   selector:
     matchLabels:
@@ -88,15 +89,39 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-        {{- if index .Values "mssql" "persistence" "enabled" }}
+        {{- if not (index .Values "mssql" "persistence" "enabled") }}
         - name: mssql-data
-          persistentVolumeClaim:
-            claimName: mssql-data
+          emptyDir: {}
         - name: mssql-log
-          persistentVolumeClaim:
-            claimName: mssql-log
+          emptyDir: {}
         - name: mssql-secrets
-          persistentVolumeClaim:
-            claimName: mssql-secrets
+          emptyDir: {}
         {{- end }}
+  {{- if index .Values "mssql" "persistence" "enabled" }}
+  volumeClaimTemplates:
+  - metadata:
+      name: mssql-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.mssql.persistence.storageClass }}
+      storageClassName: {{ .Values.mssql.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.mssql.persistence.dataSize | default "10Gi" }}
+  - metadata:
+      name: mssql-log
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.mssql.persistence.logSize | default "2Gi" }}
+  - metadata:
+      name: mssql-secrets
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.mssql.persistence.secretsSize | default "1Gi" }}
+  {{- end }}
 {{- end }}

@@ -37,7 +37,9 @@ mssql:
     mssql_pid: "Developer"
   persistence:
     enabled: true
-    size: "10Gi"
+    dataSize: "10Gi"
+    logSize: "2Gi"
+    secretsSize: "1Gi"
   resources:
     requests:
       cpu: 2
