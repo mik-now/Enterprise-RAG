@@ -114,6 +114,12 @@ jobs:
         with:
           test-name: llms_unit_tests
 
+      - name: Docsum unit tests
+        if: success() || failure()
+        uses: ./.github/actions/unit-tests
+        with:
+          test-name: docsum_unit_tests
+
       - name: Guardrails input unit tests
         if: success() || failure()
         uses: ./.github/actions/unit-tests
