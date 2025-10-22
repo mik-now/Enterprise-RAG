@@ -64,7 +64,6 @@ class ConnectorMssql(VectorStoreConnector):
     async def add_texts(self, texts, embeddings, metadatas = None):
         try:
             cursor = self.get_client().cursor()
-            table_name = self._vector_table_from_env()
             for text, embedding, metadata in zip(texts, embeddings, metadatas or [None]*len(texts)):
                 cursor.execute(
                     f"""
