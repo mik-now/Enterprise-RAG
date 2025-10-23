@@ -1,0 +1,45 @@
+name: "Build Image Test"
+on:
+  push:
+    branches: [main]
+    paths: &common_paths
+      - 'src/comps/**'
+      - '.github/workflows/build-image-test.yml'
+      - '**.ini'
+      - '!**.md'
+  pull_request:
+    branches: [main]
+    paths: *common_paths
+jobs:
+  buildx:
+    name: Run build image [update-images]
+    runs-on: innersource.prod.amr.dind-xl
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependency dependency
+        run: |
+          sudo -E apt-get update
+          sudo -E apt-get install -y wget
+          export YQ_VERSION=v4.48.1
+          export YQ_BINARY=yq_linux_amd64
+          sudo -E wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY} -O /usr/bin/yq
+          sudo -E chmod +x /usr/bin/yq
+
+      - name: Build image tests
+        uses: ./.github/actions/build-image-test
+
+      - name: Upload build images logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-images-logs
+          path: deployment/logs
+

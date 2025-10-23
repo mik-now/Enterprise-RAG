@@ -1,0 +1,32 @@
+name: "Build image tests"
+inputs:
+  max_attempts:
+    description: 'Maximum retry attempts'
+    required: false
+    default: '3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build images
+      shell: bash
+      run: |
+        cd deployment
+        for i in $(seq 1 ${{ inputs.max_attempts }}); do
+          if ./update_images.sh --build -j 4 --hpu; then
+            exit 0
+          fi
+        done
+        exit 1
+
+    - name: Sanitze build logs
+      shell: bash
+      run: |
+        for file in deployment/logs/*; do
+            if [[ "$file" == *":"* ]]; then
+                newname="${file//:/-}"
+                echo "Renaming: $file -> $newname"
+                mv -- "$file" "$newname"
+            fi
+        done
+
