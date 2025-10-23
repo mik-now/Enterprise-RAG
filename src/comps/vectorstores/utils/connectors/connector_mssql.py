@@ -110,7 +110,7 @@ class ConnectorMssql(VectorStoreConnector):
                     metadata,
                     vector_distance('cosine', CAST(CAST(? AS NVARCHAR(MAX)) AS VECTOR({self.dims})), embedding) AS distance_score
                 FROM {self.table_name}
-                ORDER BY distance_score DESC
+                ORDER BY distance_score ASC
                 """,
                 json.dumps(embedding)
             )
