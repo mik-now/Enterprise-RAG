@@ -40,3 +40,5 @@ jobs:
       with:
         Repository-name: ${{ github.repository }}
         PR-number: ${{ env.PR-number || 'not-a-pr' }}
+        user: ${{ vars.FACELESS_USER }}
+        pass: ${{ secrets.FACELESS_PASS }}
