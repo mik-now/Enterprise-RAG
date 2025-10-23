@@ -1,0 +1,113 @@
+name: Coverity
+on:
+  workflow_dispatch:
+
+  schedule:
+  - cron: '0 1 * * 1' # Every Monday at 01:00 UTC
+
+jobs:
+  scan:
+    name: "Scan"
+    runs-on: [ innersource.prod.amr.dind-xl ]
+    container: cache-registry.caas.intel.com/cache/library/ubuntu:24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: intel-innersource/frameworks.actions.certs@latest
+
+      - name: Install system dependencies
+        run: apt update && apt install -y wget git curl python3 python3-pip golang
+
+      - name: Create directories
+        run: mkdir /downloads /coverity
+
+      - name: Coverity preparation - download license
+        run: |
+          wget -q https://af-amr01.devtools.intel.com/artifactory/coverity-or-local/Enterprise/license.dat \
+          -O /downloads/license.dat
+
+      - name: Coverity preparation - download installer
+        run: |
+          wget -q https://af-amr01.devtools.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2025.3.0.sh \
+          -O /downloads/cov-analysis-linux64-2025.3.0.sh && \
+          chmod +x /downloads/cov-analysis-linux64-2025.3.0.sh
+
+      - name: Coverity preparation - install
+        run: |
+          /downloads/cov-analysis-linux64-2025.3.0.sh -q \
+          --installation.dir=/coverity/analysis \
+          --license.agreement=agree --license.region=0 --license.type.choice=0 \
+          --license.cov.path=/downloads/license.dat --component.sdk=false \
+          --component.skip.documentation=true
+
+      - name: Coverity preparation - system paths
+        run: echo "/coverity/analysis/bin" >> $GITHUB_PATH
+
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Coverity preparation - configure
+        run: |
+          cov-configure --python && \
+          cov-configure --javascript && \
+          git ls-files > scm_files.lst && \
+          coverity capture --dir idir
+        working-directory: repo
+
+# --max mem 32 GB, bases on `free -h` run on dind-xl runner
+      - name: Coverity - Scan
+        run: |
+          cov-analyze --dir idir \
+            --max-mem 32768 \
+            --webapp-security \
+            --enable-audit-checkers \
+            --enable-default \
+            --checker-option DOM_XSS:distrust_all:true
+        working-directory: repo
+
+      - name: Coverity - Commit
+        run: |
+            cov-commit-defects --dir idir \
+            --url https://coverity.devtools.intel.com/prod15 \
+            --stream "Enterprise-RAG" \
+            --user ${{ vars.FACELESS_USER }} \
+            --password '${{ secrets.FACELESS_PASS }}' \
+            --strip-path `pwd` --noxrefs
+        working-directory: repo
+
+  report:
+    name: "SDL report"
+    runs-on: [ innersource.prod.amr.dind ]
+    needs: scan
+    container: cache-registry.caas.intel.com/cache/library/python:3.11
+    steps:
+      - name: Checkout RAG repo
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Checkout IDF repo
+        uses: actions/checkout@v4
+        with:
+          repository: intel-innersource/applications.analyzers.code.static.coverity-support
+          path: idf-scan
+          token: ${{ secrets.INNERSOURCE_PAT_READ }}
+
+      - name: Install dependencies
+        run: pip install --break-system-packages -r requirements.txt
+        working-directory: idf-scan/Scripts/github_actions/ipas_report
+
+      - name: Generate report
+        run: |
+          python idf-scan/Scripts/github_actions/ipas_report/IPAS_SAST_Report_Tool.py \
+            repo/.github/coverity/cov-report-ipas-conf.yaml \
+            --output coverity-report-sdl.html \
+            --user ${{ vars.FACELESS_USER }} --password '${{ secrets.FACELESS_PASS }}'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverity-report-sdl
+          path: ./coverity-report-sdl.html

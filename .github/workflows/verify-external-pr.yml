@@ -131,4 +131,4 @@ jobs:
         with:
           Repository-name: ${{ github.event.inputs.Repository-name }}
           PR-number: ${{ github.event.inputs.PR-number }}
-          INNERSOURCE_PAT: ${{ secrets.INNERSOURCE_PAT }}
+          Repo-PAT: ${{ secrets.ERAG_PAT_READWRITE }}

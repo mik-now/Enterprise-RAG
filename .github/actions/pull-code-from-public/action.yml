@@ -7,7 +7,7 @@ inputs:
   PR-number:
     description: 'Pull request number'
     required: true
-  INNERSOURCE_PAT:
+  Repo-PAT:
     description: 'INNERSOURCE repo token'
     required: true
 
@@ -76,4 +76,4 @@ runs:
       || echo "PR already exists"
     shell: bash
     env:
-      GH_TOKEN: ${{ inputs.INNERSOURCE_PAT }}
+      GH_TOKEN: ${{ inputs.Repo-PAT }}
