@@ -28,7 +28,6 @@ jobs:
       run:
         shell: bash
     container: cache-registry.caas.intel.com/cache/library/python:3.11
-    environment: default
     permissions:
       id-token: write
       contents: read
@@ -41,6 +40,8 @@ jobs:
       with:
         Repository-name: ${{ github.repository }}
         PR-number: ${{ env.PR-number }}
+        user: ${{ vars.FACELESS_USER }}
+        pass: ${{ secrets.FACELESS_PASS }}
 
   bandit:
     name: Bandit

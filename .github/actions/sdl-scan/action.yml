@@ -7,6 +7,12 @@ inputs:
   Repository-name:
     description: 'Repository name'
     required: true
+  user:
+    description: 'Protex user name'
+    required: true
+  password:
+    description: 'Protex password'
+    required: true
 
 runs:
   using: "composite"
@@ -21,14 +27,6 @@ runs:
       shell: bash
 
     - uses: intel-innersource/frameworks.actions.certs@latest
-
-    - name: Collect credentials from Conjur
-      uses: intel-innersource/frameworks.actions.conjur-fetch@v1
-      with:
-        host_id: host/github-apps-oidc/43211-raglabel
-        secrets: >
-          FMSPAMVLT101/LOBUSER_prapp/AAM-DV-43211-ENTERPRISEAIRA/Operating System-UnmanagedAccounts-AllOSs-sys_cicd/username|CONJUR_SDL_USERNAME;
-          FMSPAMVLT101/LOBUSER_prapp/AAM-DV-43211-ENTERPRISEAIRA/Operating System-UnmanagedAccounts-AllOSs-sys_cicd/password|CONJUR_SDL_PASSWORD
 
     - name: Fetch PR code to be scanned
       if: ${{ github.event_name == 'pull_request' }}
@@ -89,10 +87,10 @@ runs:
         sdle: ${{ steps.submit.outputs.submit || false }}
         logfile: IDF_Scans_Results_${{ github.run_id }}.log
       env:
-        IDFC_USER: ${{ env.CONJUR_SDL_USERNAME }}@intel.com
-        IDFC_PASSWORD: ${{ env.CONJUR_SDL_PASSWORD }}
-        IDFC_STORAGE_USER: ${{ env.CONJUR_SDL_USERNAME }}
-        IDFC_STORAGE_PASS: ${{ env.CONJUR_SDL_PASSWORD }}
+        IDFC_USER: ${{ inputs.user }}@intel.com
+        IDFC_PASSWORD: ${{ inputs.pass }}
+        IDFC_STORAGE_USER: ${{ inputs.user }}
+        IDFC_STORAGE_PASS: ${{ inputs.pass }}
 
     - name: SDLe Scans PR from fork
       if : ${{ github.event.pull_request.head.repo.full_name != inputs.Repository-name }}
@@ -106,10 +104,10 @@ runs:
         sdle: ${{ steps.submit.outputs.submit || false }}
         logfile: IDF_Scans_Results_${{ github.run_id }}.log
       env:
-        IDFC_USER: ${{ env.CONJUR_SDL_USERNAME }}@intel.com
-        IDFC_PASSWORD: ${{ env.CONJUR_SDL_PASSWORD }}
-        IDFC_STORAGE_USER: ${{ env.CONJUR_SDL_USERNAME }}
-        IDFC_STORAGE_PASS: ${{ env.CONJUR_SDL_PASSWORD }}
+        IDFC_USER: ${{ inputs.user }}@intel.com
+        IDFC_PASSWORD: ${{ inputs.pass }}
+        IDFC_STORAGE_USER: ${{ inputs.user }}
+        IDFC_STORAGE_PASS: ${{ inputs.pass }}
 
     - name: Check results
       id: results
